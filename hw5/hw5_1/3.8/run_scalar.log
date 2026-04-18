@@ -1,0 +1,13 @@
+[cpu] OpenMP threads = 56
+[cpu] symmetry mode = off
+[cpu] real-axis symmetry optimization = off
+[cpu] Newton SIMD (AVX) = off
+[cpu] Secant SIMD (AVX) = off
+Output      : /tmp/secantsimd/3.4/secant_scalar.ppm
+Backend     : cpu
+Method      : secant
+Resolution  : 128 x 96
+Max iter    : 30
+Tolerance   : 1.000e-06
+Symmetry    : off
+Elapsed     : 0.290942 seconds

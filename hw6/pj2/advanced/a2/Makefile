@@ -1,0 +1,14 @@
+CC ?= gcc
+CFLAGS ?= -O3 -march=native -fopenmp -std=c11
+LDLIBS ?= -lgmp -lmpfr
+
+all: pi_bs_baseline_from_user pi_bs_optimized_yc_learned
+
+pi_bs_baseline_from_user: pi_bs_baseline_from_user.c
+	$(CC) $(CFLAGS) $< -o $@ $(LDLIBS)
+
+pi_bs_optimized_yc_learned: pi_bs_optimized_yc_learned.c
+	$(CC) $(CFLAGS) $< -o $@ $(LDLIBS)
+
+clean:
+	rm -f pi_bs_baseline_from_user pi_bs_optimized_yc_learned

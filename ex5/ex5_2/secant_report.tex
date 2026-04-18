@@ -1,0 +1,325 @@
+\documentclass[12pt,a4paper]{article}
+
+% -------------------------------------------------
+% Basic packages
+% -------------------------------------------------
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{fontspec}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{setspace}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{listings}
+
+% -------------------------------------------------
+% Table of contents setup
+% -------------------------------------------------
+\setcounter{tocdepth}{2}
+
+% -------------------------------------------------
+% Font setup
+% -------------------------------------------------
+\setmainfont{Noto Serif}
+\setmonofont{DejaVu Sans Mono}
+
+% -------------------------------------------------
+% Line spacing and paragraph formatting
+% -------------------------------------------------
+\onehalfspacing
+\setlength{\parindent}{2em}
+\setlength{\parskip}{0.4em}
+
+% -------------------------------------------------
+% Header / footer
+% -------------------------------------------------
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0pt}
+
+% -------------------------------------------------
+% Hyperref setup
+% -------------------------------------------------
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    urlcolor=blue,
+    citecolor=blue
+}
+
+% -------------------------------------------------
+% Code listing setup
+% -------------------------------------------------
+\lstset{
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    columns=fullflexible,
+    showstringspaces=false
+}
+
+% -------------------------------------------------
+% User-defined information
+% -------------------------------------------------
+\newcommand{\HomeworkTitle}{Computational Physics Report}
+\newcommand{\StudentID}{2024141230044}
+\newcommand{\StudentName}{Fanyi}
+
+\begin{document}
+
+% =================================================
+% Title block
+% =================================================
+\begin{center}
+    {\LARGE \textbf{\HomeworkTitle}}\\[1.2em]
+    {\large Student ID: \StudentID}\\[0.5em]
+    {\large Name: \StudentName}
+\end{center}
+
+\vspace{0.5em}
+\noindent\rule{\textwidth}{0.8pt}
+\vspace{0.5em}
+
+\section*{Problem 2}
+
+Use the Secant Method to seek the roots of
+\[
+f(x)=2-x-e^{-x}
+\]
+
+\newpage
+\tableofcontents
+\newpage
+
+% =================================================
+% Part 1
+% =================================================
+\section{Algorithm Principle}
+
+\subsection*{Secant Method}
+
+The equation in this problem is
+\[
+f(x)=2-x-e^{-x}=0
+\]
+which is a nonlinear equation. Since it is not convenient to solve it in closed form, a numerical iterative method is used.
+
+The secant method starts from two initial approximations $x_{n-1}$ and $x_n$. Instead of using the exact derivative, it approximates the derivative by the slope of the secant line through the two points $(x_{n-1},f(x_{n-1}))$ and $(x_n,f(x_n))$. The iteration formula is
+\[
+x_{n+1}=x_n-\frac{f(x_n)(x_n-x_{n-1})}{f(x_n)-f(x_{n-1})}
+\]
+
+Compared with Newton's method, the secant method does not require an explicit derivative, so the implementation is simpler. At the same time, it usually converges faster than the bisection method when the initial values are chosen reasonably.
+
+\subsection*{Locating the Root Intervals}
+
+Before applying the iteration, it is useful to determine intervals containing roots. For this function,
+\[
+f(-2)=2-(-2)-e^2=4-e^2<0,
+\]
+\[
+f(-1)=2-(-1)-e=3-e>0
+\]
+so one root lies in the interval $(-2,-1)$.
+
+Similarly,
+\[
+f(1)=2-1-e^{-1}=1-e^{-1}>0,
+\]
+\[
+f(2)=2-2-e^{-2}=-e^{-2}<0
+\]
+so another root lies in the interval $(1,2)$.
+
+Therefore, this problem has two real roots, and the secant method can be applied twice with different initial guesses:
+\[
+(x_0,x_1)=(-2,-1),\qquad (x_0,x_1)=(1,2)
+\]
+
+\subsection*{Stopping Criterion and Numerical Considerations}
+
+In the program, the iteration is terminated when either
+\[
+|x_{n+1}-x_n|<\varepsilon
+\]
+or
+\[
+|f(x_{n+1})|<\varepsilon
+\]
+with
+\[
+\varepsilon=10^{-12}
+\]
+A maximum number of iterations is also imposed to avoid an infinite loop.
+
+The secant method is efficient, but its behavior depends on the initial guesses. If $f(x_n)-f(x_{n-1})$ becomes extremely small, the denominator in the iteration formula may cause numerical instability. For this reason, the program checks whether the denominator is too small before continuing the iteration.
+
+\section{Program Code}
+
+\begin{lstlisting}[language=C]
+#include <stdio.h>
+#include <math.h>
+
+#define EPS 1e-12
+#define MAX_ITER 100
+
+double f(double x) {
+    return 2.0 - x - exp(-x);
+}
+
+double secant(double x0, double x1, const char *label) {
+    double x2 = x1;
+    int iter;
+
+    printf("%s\n", label);
+    printf("%-6s %-22s %-22s %-22s\n",
+           "Iter", "x_n", "f(x_n)", "|x_n - x_{n-1}|");
+    printf("%-6d %-22.15f %-22.15e %-22s\n",
+           0, x0, f(x0), "-");
+    printf("%-6d %-22.15f %-22.15e %-22.15e\n",
+           1, x1, f(x1), fabs(x1 - x0));
+
+    for (iter = 2; iter <= MAX_ITER; ++iter) {
+        double f0 = f(x0);
+        double f1 = f(x1);
+
+        if (fabs(f1 - f0) < 1e-18) {
+            printf("Denominator too small. Iteration stopped.\n");
+            break;
+        }
+
+        x2 = x1 - f1 * (x1 - x0) / (f1 - f0);
+        printf("%-6d %-22.15f %-22.15e %-22.15e\n",
+               iter, x2, f(x2), fabs(x2 - x1));
+
+        if (fabs(x2 - x1) < EPS || fabs(f(x2)) < EPS) {
+            printf("Converged in %d iterations.\n\n", iter);
+            return x2;
+        }
+
+        x0 = x1;
+        x1 = x2;
+    }
+
+    printf("Stopped after %d iterations.\n\n", MAX_ITER);
+    return x2;
+}
+
+int main(void) {
+    double r1 = secant(-2.0, -1.0, "Root in (-2, -1):");
+    double r2 = secant(1.0, 2.0, "Root in (1, 2):");
+
+    printf("Final results:\n");
+    printf("root 1 = %.15f, f(root 1) = %.15e\n", r1, f(r1));
+    printf("root 2 = %.15f, f(root 2) = %.15e\n", r2, f(r2));
+    return 0;
+}
+\end{lstlisting}
+
+\section{Execution Results}
+
+According to the actual output of the final submitted program, the secant iterations converge to two real roots.
+
+\subsection*{Representative Program Output}
+
+\begin{lstlisting}
+Root in (-2, -1):
+Iter   x_n                    f(x_n)                 |x_n - x_{n-1}|
+0      -2.000000000000000     -3.389056098930650e+00 -
+1      -1.000000000000000      2.817181715409549e-01 1.000000000000000e+00
+2      -1.076746253183463      1.416323732577238e-01 7.674625318346284e-02
+3      -1.154339800211228     -1.758881929525691e-02 7.759354702776555e-02
+4      -1.145768209612852      9.118716284381989e-04 8.571590598376311e-03
+5      -1.146190690606102      5.429889857744286e-06 4.224809932495965e-04
+6      -1.146193221408869     -1.691814688342674e-09 2.530802767131135e-06
+7      -1.146193220620581      3.108624468950438e-15 7.882876573717112e-10
+Converged in 7 iterations.
+
+Root in (1, 2):
+Iter   x_n                    f(x_n)                 |x_n - x_{n-1}|
+0       1.000000000000000      6.321205588285577e-01 -
+1       2.000000000000000     -1.353352832366127e-01 1.000000000000000e+00
+2       1.823657237565050      1.490849590512153e-02 1.763427624349498e-01
+3       1.841155501830482      2.104799047205619e-04 1.749826426543200e-02
+4       1.841406082112560     -3.548002502351544e-07 2.505802820778058e-04
+5       1.841405660427018      8.365669268428633e-12 4.216855418182064e-07
+6       1.841405660436961      0.000000000000000e+00 9.942491274728127e-12
+Converged in 6 iterations.
+\end{lstlisting}
+
+\subsection*{Final Numerical Results}
+
+\begin{table}[H]
+\centering
+\caption{Roots obtained by the secant method}
+\begin{tabular}{cccc}
+\toprule
+Initial guesses & Approximate root & Residual $|f(x)|$ & Iterations \\
+\midrule
+$(-2,-1)$ & $-1.146193220620581$ & $3.11\times 10^{-15}$ & 7 \\
+$(1,2)$   & $ 1.841405660436961$ & $0.00\times 10^{0}$  & 6 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The two roots are therefore approximately
+\[
+x_1\approx -1.146193220620581,\qquad x_2\approx 1.841405660436961
+\]
+
+\section{Result Analysis}
+
+\subsection*{Convergence Behavior of the Secant Method}
+
+From the execution results, both sets of initial guesses lead to successful convergence. Starting from $(-2,-1)$, the iteration approaches the negative root in seven steps. Starting from $(1,2)$, the iteration approaches the positive root in six steps. In both cases, the values of $f(x_n)$ decrease rapidly toward zero, which shows that the secant method is effective for this problem.
+
+The results also show a typical feature of the secant method: the early iterations make relatively large corrections, while the later iterations become much more accurate once the iterates are close to the root. This demonstrates the practical efficiency of the method.
+
+\subsection*{Influence of the Initial Guesses}
+
+This problem contains two real roots, so different initial guesses lead to different converged solutions. The pair $(-2,-1)$ converges to the negative root, while the pair $(1,2)$ converges to the positive root. This illustrates that the secant method is sensitive to the choice of starting values.
+
+Unlike the bisection method, the secant method does not explicitly preserve a bracketing interval during iteration. Therefore, although it can converge faster, its reliability depends more strongly on choosing suitable initial points. In this example the sign-change analysis provides good starting intervals, so the method behaves well.
+
+\subsection*{Accuracy of the Computed Roots}
+
+The final residuals are extremely small. For the first root, the residual is already on the order of $10^{-15}$, and for the second root it is numerically zero within double precision output. This means that the computed values satisfy the original equation to very high accuracy.
+
+Substituting the results back into the function confirms this:
+\[
+f(-1.146193220620581)\approx 0,
+\qquad
+f(1.841405660436961)\approx 0
+\]
+Therefore, the roots obtained by the program are trustworthy approximations to the exact solutions.
+
+\subsection*{Comparison with Other Nonlinear Solvers}
+
+Compared with Newton's method, the secant method avoids the need to evaluate the derivative
+\[
+f'(x)=-1+e^{-x}
+\]
+which simplifies the implementation. Compared with the bisection method, it usually reaches the root in fewer iterations. However, this gain in efficiency comes at the cost of increased sensitivity to the initial guesses and the possibility of instability when the denominator becomes too small.
+
+For this specific function, the secant method provides a good balance between simplicity and efficiency. It is easy to implement in C, converges quickly, and produces highly accurate results.
+
+\subsection*{Final Conclusion}
+
+This problem shows that the secant method is an efficient derivative-free numerical method for solving nonlinear equations. By selecting two reasonable initial values near each sign-change interval, the program successfully finds both real roots of
+\[
+2-x-e^{-x}=0
+\]
+with high accuracy.
+
+The numerical experiment also emphasizes an important principle in computational physics: a correct iterative formula is not enough by itself. One must also choose suitable initial guesses, define a proper stopping criterion, and verify the final residual in order to obtain reliable numerical results.
+
+\end{document}

@@ -1,0 +1,307 @@
+\documentclass[12pt,a4paper]{article}
+
+% -------------------------------------------------
+% Basic packages
+% -------------------------------------------------
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{fontspec}      % For XeLaTeX
+\usepackage{ctex}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{caption}
+\usepackage{float}
+\usepackage{setspace}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{listings}
+
+% -------------------------------------------------
+% Table of contents setup
+% -------------------------------------------------
+
+\setcounter{tocdepth}{2}
+% -------------------------------------------------
+% Font setup (XeLaTeX)
+% -------------------------------------------------
+\setmainfont{Noto Serif}
+\setmonofont{DejaVu Sans Mono}
+
+% -------------------------------------------------
+% Line spacing and paragraph formatting
+% -------------------------------------------------
+\onehalfspacing
+\setlength{\parindent}{2em}
+\setlength{\parskip}{0.4em}
+
+% -------------------------------------------------
+% Header / footer
+% -------------------------------------------------
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0pt}
+
+% -------------------------------------------------
+% Hyperref setup
+% -------------------------------------------------
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    urlcolor=blue,
+    citecolor=blue
+}
+
+% -------------------------------------------------
+% Code listing setup
+% -------------------------------------------------
+\lstset{
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    columns=fullflexible,
+    showstringspaces=false
+}
+
+% -------------------------------------------------
+% User-defined information
+% -------------------------------------------------
+\newcommand{\HomeworkTitle}{Computational Physics Ex\_3}
+\newcommand{\StudentID}{2024141230044}
+\newcommand{\StudentName}{范奕}
+
+\begin{document}
+
+% =================================================
+% Title block + Part 0 on a separate page
+% =================================================
+\begin{center}
+    {\LARGE \textbf{\HomeworkTitle}}\\[1.2em]
+    {\large Student ID: \StudentID}\\[0.5em]
+    {\large Name: \StudentName}
+\end{center}
+
+\vspace{1em}
+\noindent\rule{\textwidth}{0.8pt}
+\vspace{1.5em}
+
+\section*{Problem 1}
+
+Use the Gregory--Leibniz infinite series
+\[
+\frac{\pi}{4}=1-\frac{1}{3}+\frac{1}{5}-\frac{1}{7}+\cdots+(-1)^{n-1}\frac{1}{2n-1}
+\]
+to compute $\pi$ by two methods:
+\begin{enumerate}[label=(\arabic*)]
+    \item forward summation,
+    \item backward summation.
+\end{enumerate}
+The task is to compare the numerical results, discuss which method is more precise, and estimate the computational cost required for approximately 10-digit accuracy.
+
+\newpage
+\tableofcontents
+\newpage
+
+% =================================================
+% Part 1
+% =================================================
+\section{Part 1. Source Code}
+
+\begin{lstlisting}[language=C]
+#include <stdio.h>
+#include <time.h>
+#include <math.h>
+
+/* Gregory-Leibniz 正序求和 */
+long double pi_forward_gl(long long n) {
+    long double sum = 0.0L;
+    long long k;
+    for (k = 1; k <= n; k++) {
+        long double term = 1.0L / (2.0L * k - 1.0L);
+        if (k % 2 == 0)
+            sum -= term;
+        else
+            sum += term;
+    }
+    return 4.0L * sum;
+}
+
+/* Gregory-Leibniz 倒序求和 */
+long double pi_backward_gl(long long n) {
+    long double sum = 0.0L;
+    long long k;
+    for (k = n; k >= 1; k--) {
+        long double term = 1.0L / (2.0L * k - 1.0L);
+        if (k % 2 == 0)
+            sum -= term;
+        else
+            sum += term;
+    }
+    return 4.0L * sum;
+}
+
+int main(void) {
+    /* 用一个较小的 n 来测试时间 */
+    long long test_n = 5000000LL;              /* 500万，可自行改成 1000000 或 10000000 */
+    long long target_n = 40000000000LL;        /* 约 4e10，达到 10 位精度所需项数 */
+
+    long double pi_f, pi_b, pi_true;
+    double time_f, time_b;
+    double est_time_f, est_time_b;
+
+    clock_t start, end;
+
+    pi_true = acosl(-1.0L);
+
+    printf("Gregory-Leibniz series for pi\n");
+    printf("============================================\n");
+    printf("Test n   = %lld\n", test_n);
+    printf("Target n = %lld (estimated for 10-digit accuracy)\n\n", target_n);
+
+    /* 正序计时 */
+    start = clock();
+    pi_f = pi_forward_gl(test_n);
+    end = clock();
+    time_f = (double)(end - start) / CLOCKS_PER_SEC;
+
+    /* 倒序计时 */
+    start = clock();
+    pi_b = pi_backward_gl(test_n);
+    end = clock();
+    time_b = (double)(end - start) / CLOCKS_PER_SEC;
+
+    /* 按线性比例估算 4e10 项所需时间 */
+    est_time_f = time_f * (double)target_n / (double)test_n;
+    est_time_b = time_b * (double)target_n / (double)test_n;
+
+    printf("Forward result  = %.15Lf\n", pi_f);
+    printf("Backward result = %.15Lf\n", pi_b);
+    printf("True pi         = %.15Lf\n\n", pi_true);
+
+    printf("Forward error   = %.15Le\n", fabsl(pi_f - pi_true));
+    printf("Backward error  = %.15Le\n\n", fabsl(pi_b - pi_true));
+
+    printf("Measured time with n = %lld:\n", test_n);
+    printf("  Forward time  = %.6f seconds\n", time_f);
+    printf("  Backward time = %.6f seconds\n\n", time_b);
+
+    printf("Estimated time for n = %lld:\n", target_n);
+    printf("  Forward time  = %.2f seconds (%.2f minutes, %.2f hours)\n",
+           est_time_f, est_time_f / 60.0, est_time_f / 3600.0);
+    printf("  Backward time = %.2f seconds (%.2f minutes, %.2f hours)\n\n",
+           est_time_b, est_time_b / 60.0, est_time_b / 3600.0);
+
+    printf("Conclusion:\n");
+    printf("1. Backward summation is usually slightly more accurate than forward summation\n");
+    printf("   because it reduces floating-point rounding error.\n");
+    printf("2. However, the Gregory-Leibniz series converges very slowly.\n");
+    printf("3. To obtain about 10 decimal digits of accuracy, we need roughly n ~ 4e10 terms.\n");
+    printf("4. Based on the measured time for a smaller n, directly computing 4e10 terms\n");
+    printf("   would take a very long time, so it is generally impractical on an ordinary computer.\n");
+
+    return 0;
+}
+\end{lstlisting}
+
+\section{Part 2. Theoretical Analysis}
+
+Let
+\[
+S_n = \sum_{k=1}^{n} (-1)^{k-1}\frac{1}{2k-1}.
+\]
+Then the Gregory--Leibniz approximation of $\pi$ is
+\[
+\pi_n = 4S_n.
+\]
+
+For an alternating series with monotonically decreasing terms,
+\[
+\left|\frac{\pi}{4}-S_n\right| < \frac{1}{2n+1}.
+\]
+Therefore,
+\[
+|\pi-\pi_n| < \frac{4}{2n+1}.
+\]
+
+If we want about 10 correct decimal digits, we require approximately
+\[
+|\pi-\pi_n| < 5\times 10^{-11},
+\]
+which implies
+\[
+\frac{4}{2n+1} < 5\times 10^{-11}.
+\]
+Hence,
+\[
+n \approx 4\times 10^{10}.
+\]
+This shows that the Gregory--Leibniz series converges extremely slowly.
+
+For the finite test value $n=5\times 10^6$ used in the program, the theoretical truncation error is of order
+\[
+\frac{4}{2n+1} \approx 4\times 10^{-7},
+\]
+which is consistent with the numerical output of the code.
+
+\section{Part 3. Numerical Results}
+
+The following output was obtained from the program:
+
+\begin{lstlisting}
+Gregory-Leibniz series for pi
+============================================
+Test n   = 5000000
+Target n = 40000000000 (estimated for 10-digit accuracy)
+
+Forward result  = 3.141592453589793
+Backward result = 3.141592453589793
+True pi         = 3.141592653589793
+
+Forward error   = 2.000000000300373e-07
+Backward error  = 2.000000000000113e-07
+
+Measured time with n = 5000000:
+  Forward time  = 0.018939 seconds
+  Backward time = 0.025952 seconds
+
+Estimated time for n = 40000000000:
+  Forward time  = 151.51 seconds (2.53 minutes, 0.04 hours)
+  Backward time = 207.62 seconds (3.46 minutes, 0.06 hours)
+
+Conclusion:
+1. Backward summation is usually slightly more accurate than forward summation
+   because it reduces floating-point rounding error.
+2. However, the Gregory-Leibniz series converges very slowly.
+3. To obtain about 10 decimal digits of accuracy, we need roughly n ~ 4e10 terms.
+4. Based on the measured time for a smaller n, directly computing 4e10 terms
+   would take a very long time, so it is generally impractical on an ordinary computer.
+\end{lstlisting}
+
+\section{Part 4. Discussion}
+
+The numerical results show that forward summation and backward summation produce almost the same approximation for $\pi$ when $n=5\times 10^6$. However, the backward summation gives a slightly smaller absolute error:
+\[
+2.000000000000113\times 10^{-7} < 2.000000000300373\times 10^{-7}.
+\]
+This is because, in backward summation, small terms are added first, which reduces floating-point roundoff error.
+
+Even so, the main source of error here is not roundoff error but truncation error from the series itself. The Gregory--Leibniz series converges too slowly to be efficient for high-precision computation. Although the estimated runtime for $n\approx 4\times 10^{10}$ is only a few minutes on the current machine, the number of required terms is still extremely large compared with faster formulas for $\pi$.
+
+Therefore, the main conclusion is:
+\begin{enumerate}[label=(\arabic*)]
+    \item backward summation is slightly more accurate;
+    \item both methods are mathematically equivalent in truncation error order;
+    \item the Gregory--Leibniz series is not practical for computing $\pi$ to very high precision.
+\end{enumerate}
+
+\section{Part 5. Conclusion}
+
+In this exercise, I implemented the Gregory--Leibniz series in C using both forward summation and backward summation. The numerical experiment with $n=5\times 10^6$ shows that the backward summation is slightly more accurate because it reduces floating-point rounding error. However, both methods still suffer from the very slow convergence of the Gregory--Leibniz series.
+
+According to the alternating-series error estimate, about $4\times 10^{10}$ terms are needed to obtain roughly 10 decimal digits of accuracy. This confirms that, although the series is mathematically correct and simple to implement, it is not an efficient method for high-precision computation of $\pi$.
+
+\end{document}

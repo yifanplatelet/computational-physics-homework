@@ -1,0 +1,509 @@
+\documentclass[12pt,a4paper]{article}
+
+% -------------------------------------------------
+% Basic packages
+% -------------------------------------------------
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{fontspec}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{setspace}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{listings}
+
+% -------------------------------------------------
+% Table of contents setup
+% -------------------------------------------------
+\setcounter{tocdepth}{2}
+
+% -------------------------------------------------
+% Font setup
+% -------------------------------------------------
+\setmainfont{Noto Serif}
+\setmonofont{DejaVu Sans Mono}
+
+% -------------------------------------------------
+% Line spacing and paragraph formatting
+% -------------------------------------------------
+\onehalfspacing
+\setlength{\parindent}{2em}
+\setlength{\parskip}{0.4em}
+
+% -------------------------------------------------
+% Header / footer
+% -------------------------------------------------
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0pt}
+
+% -------------------------------------------------
+% Hyperref setup
+% -------------------------------------------------
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    urlcolor=blue,
+    citecolor=blue
+}
+
+% -------------------------------------------------
+% Code listing setup
+% -------------------------------------------------
+\lstset{
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    columns=fullflexible,
+    showstringspaces=false
+}
+
+% -------------------------------------------------
+% User-defined information
+% -------------------------------------------------
+\newcommand{\HomeworkTitle}{Computational Physics Ex\_4}
+\newcommand{\StudentID}{2024141230044}
+\newcommand{\StudentName}{Fanyi}
+
+\begin{document}
+
+% =================================================
+% Title block
+% =================================================
+\begin{center}
+    {\LARGE \textbf{\HomeworkTitle}}\\[1.2em]
+    {\large Student ID: \StudentID}\\[0.5em]
+    {\large Name: \StudentName}
+\end{center}
+
+\vspace{0.5em}
+\noindent\rule{\textwidth}{0.8pt}
+\vspace{0.5em}
+
+\section*{Problem 4}
+
+For the quadratic equation
+\[
+1.22x^2+3.34x+2.28=0
+\]
+use the standard quadratic formula to compute its roots and examine the cancellation error.
+
+In addition, compute
+\[
+(x-1)^7
+\]
+and its expanded form
+\[
+x^7-7x^6+21x^5-35x^4+35x^3-21x^2+7x-1
+\]
+in single, double, and quad precision, and compare these calculations by zooming in near $x\approx 1$.
+
+\newpage
+\tableofcontents
+\newpage
+
+% =================================================
+% Part 1
+% =================================================
+\section{Algorithm Principle}
+
+\subsection*{Quadratic Formula}
+
+For a general quadratic equation
+\[
+ax^2+bx+c=0
+\]
+the standard quadratic formula is
+\[
+x_{1,2}=\frac{-b\pm\sqrt{b^2-4ac}}{2a}
+\]
+
+In this exercise,
+\[
+a=1.22,\qquad b=3.34,\qquad c=2.28
+\]
+so the discriminant is
+\[
+\Delta=b^2-4ac=3.34^2-4\times 1.22\times 2.28=0.0292
+\]
+
+Because $b>0$, the computation of
+\[
+\frac{-b+\sqrt{\Delta}}{2a}
+\]
+involves subtracting two nearby numbers. As a result, this root is more vulnerable to cancellation error.
+
+To reduce this problem, we can use the stable form
+\[
+q=-\frac{1}{2}\left(b+\operatorname{sign}(b)\sqrt{\Delta}\right)
+\]
+and then compute
+\[
+x_1=\frac{q}{a},\qquad x_2=\frac{c}{q}
+\]
+This avoids the harmful subtraction and improves numerical stability.
+
+\subsection*{Factored Form and Expanded Form}
+
+The two expressions in the problem are mathematically identical:
+\[
+(x-1)^7=x^7-7x^6+21x^5-35x^4+35x^3-21x^2+7x-1
+\]
+
+However, their numerical behavior is not the same.
+
+When $x\approx 1$, the factored form $(x-1)^7$ first computes the small quantity $(x-1)$ and then raises it to the seventh power, so the evaluation path is relatively direct. In contrast, in the expanded form each individual term is close to 1, while the final result is extremely close to 0. Therefore, many large positive and negative terms cancel each other, and a large number of significant digits can be lost.
+
+This problem therefore uses the comparison between the \textit{factored form} and the \textit{expanded form} to demonstrate a typical floating-point cancellation error.
+
+\section{Program Code}
+
+\begin{lstlisting}[language=C]
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include <quadmath.h>
+
+static void print_q(const char *label, __float128 x) {
+    char buf[128];
+    quadmath_snprintf(buf, sizeof(buf), "%.36Qg", x);
+    printf("%-24s = %s\n", label, buf);
+}
+
+static void sort2f(float *x, float *y) {
+    if (*x > *y) { float t = *x; *x = *y; *y = t; }
+}
+static void sort2d(double *x, double *y) {
+    if (*x > *y) { double t = *x; *x = *y; *y = t; }
+}
+static void sort2q(__float128 *x, __float128 *y) {
+    if (*x > *y) { __float128 t = *x; *x = *y; *y = t; }
+}
+
+static float direct7f(float x) {
+    float t = x - 1.0f;
+    float t2 = t * t;
+    float t4 = t2 * t2;
+    return t4 * t2 * t;
+}
+static double direct7d(double x) {
+    double t = x - 1.0;
+    double t2 = t * t;
+    double t4 = t2 * t2;
+    return t4 * t2 * t;
+}
+static __float128 direct7q(__float128 x) {
+    __float128 t = x - 1.0Q;
+    __float128 t2 = t * t;
+    __float128 t4 = t2 * t2;
+    return t4 * t2 * t;
+}
+
+static float expanded7f(float x) {
+    float x2 = x * x;
+    float x3 = x2 * x;
+    float x4 = x3 * x;
+    float x5 = x4 * x;
+    float x6 = x5 * x;
+    float x7 = x6 * x;
+    return x7 - 7.0f * x6 + 21.0f * x5 - 35.0f * x4
+         + 35.0f * x3 - 21.0f * x2 + 7.0f * x - 1.0f;
+}
+static double expanded7d(double x) {
+    double x2 = x * x;
+    double x3 = x2 * x;
+    double x4 = x3 * x;
+    double x5 = x4 * x;
+    double x6 = x5 * x;
+    double x7 = x6 * x;
+    return x7 - 7.0 * x6 + 21.0 * x5 - 35.0 * x4
+         + 35.0 * x3 - 21.0 * x2 + 7.0 * x - 1.0;
+}
+static __float128 expanded7q(__float128 x) {
+    __float128 x2 = x * x;
+    __float128 x3 = x2 * x;
+    __float128 x4 = x3 * x;
+    __float128 x5 = x4 * x;
+    __float128 x6 = x5 * x;
+    __float128 x7 = x6 * x;
+    return x7 - 7.0Q * x6 + 21.0Q * x5 - 35.0Q * x4
+         + 35.0Q * x3 - 21.0Q * x2 + 7.0Q * x - 1.0Q;
+}
+
+static void quadratic_float(void) {
+    float a = 1.22f, b = 3.34f, c = 2.28f;
+    float disc = b * b - 4.0f * a * c;
+    float s = sqrtf(disc);
+
+    float r1_std = (-b + s) / (2.0f * a);
+    float r2_std = (-b - s) / (2.0f * a);
+
+    float q = -0.5f * (b + (b >= 0.0f ? s : -s));
+    float r1_stable = q / a;
+    float r2_stable = c / q;
+
+    sort2f(&r1_std, &r2_std);
+    sort2f(&r1_stable, &r2_stable);
+
+    printf("\n[float]\n");
+    printf("discriminant              = %.9g\n", disc);
+    printf("standard root 1           = %.9g\n", r1_std);
+    printf("standard root 2           = %.9g\n", r2_std);
+    printf("stable   root 1           = %.9g\n", r1_stable);
+    printf("stable   root 2           = %.9g\n", r2_stable);
+}
+
+static void quadratic_double(void) {
+    double a = 1.22, b = 3.34, c = 2.28;
+    double disc = b * b - 4.0 * a * c;
+    double s = sqrt(disc);
+
+    double r1_std = (-b + s) / (2.0 * a);
+    double r2_std = (-b - s) / (2.0 * a);
+
+    double q = -0.5 * (b + (b >= 0.0 ? s : -s));
+    double r1_stable = q / a;
+    double r2_stable = c / q;
+
+    sort2d(&r1_std, &r2_std);
+    sort2d(&r1_stable, &r2_stable);
+
+    printf("\n[double]\n");
+    printf("discriminant              = %.17g\n", disc);
+    printf("standard root 1           = %.17g\n", r1_std);
+    printf("standard root 2           = %.17g\n", r2_std);
+    printf("stable   root 1           = %.17g\n", r1_stable);
+    printf("stable   root 2           = %.17g\n", r2_stable);
+}
+
+static void quadratic_quad(void) {
+    __float128 a = 1.22Q, b = 3.34Q, c = 2.28Q;
+    __float128 disc = b * b - 4.0Q * a * c;
+    __float128 s = sqrtq(disc);
+
+    __float128 r1_std = (-b + s) / (2.0Q * a);
+    __float128 r2_std = (-b - s) / (2.0Q * a);
+
+    __float128 q = -0.5Q * (b + (b >= 0.0Q ? s : -s));
+    __float128 r1_stable = q / a;
+    __float128 r2_stable = c / q;
+
+    sort2q(&r1_std, &r2_std);
+    sort2q(&r1_stable, &r2_stable);
+
+    printf("\n[quad: __float128]\n");
+    print_q("discriminant", disc);
+    print_q("standard root 1", r1_std);
+    print_q("standard root 2", r2_std);
+    print_q("stable   root 1", r1_stable);
+    print_q("stable   root 2", r2_stable);
+}
+
+static void sample_point_report(void) {
+    float xf = 1.0f + 1.0e-3f;
+    double xd = 1.0 + 1.0e-9;
+    __float128 xq = 1.0Q + 1.0e-12Q;
+
+    printf("\nRepresentative sample points near x = 1:\n");
+    printf("float  : x = %.9g, direct = %.9g, expanded = %.9g\n",
+           xf, direct7f(xf), expanded7f(xf));
+    printf("double : x = %.17g, direct = %.17g, expanded = %.17g\n",
+           xd, direct7d(xd), expanded7d(xd));
+
+    char xb[128], d1[128], d2[128];
+    quadmath_snprintf(xb, sizeof(xb), "%.36Qg", xq);
+    quadmath_snprintf(d1, sizeof(d1), "%.36Qg", direct7q(xq));
+    quadmath_snprintf(d2, sizeof(d2), "%.36Qg", expanded7q(xq));
+    printf("quad   : x = %s, direct = %s, expanded = %s\n", xb, d1, d2);
+}
+
+static void write_csv(const char *filename, long n, long double left, long double right) {
+    FILE *fp = fopen(filename, "w");
+    if (!fp) {
+        perror(filename);
+        exit(EXIT_FAILURE);
+    }
+
+    fprintf(fp, "x,float_direct,float_expanded,double_direct,double_expanded,quad_direct,quad_expanded\n");
+
+    for (long i = 0; i < n; ++i) {
+        long double xl = left + (right - left) * (long double)i / (long double)(n - 1);
+
+        float xf = (float)xl;
+        double xd = (double)xl;
+        __float128 xq = (__float128)xl;
+
+        char qd[128], qe[128];
+        quadmath_snprintf(qd, sizeof(qd), "%.36Qg", direct7q(xq));
+        quadmath_snprintf(qe, sizeof(qe), "%.36Qg", expanded7q(xq));
+
+        fprintf(fp, "%.21Lg,%.9g,%.9g,%.17g,%.17g,%s,%s\n",
+                xl,
+                direct7f(xf), expanded7f(xf),
+                direct7d(xd), expanded7d(xd),
+                qd, qe);
+    }
+
+    fclose(fp);
+}
+
+int main(void) {
+    printf("Quadratic equation: 1.22 x^2 + 3.34 x + 2.28 = 0\n");
+
+    quadratic_float();
+    quadratic_double();
+    quadratic_quad();
+    sample_point_report();
+
+    write_csv("poly_zoom1.csv", 4001, 0.99L,   1.01L);
+    write_csv("poly_zoom2.csv", 4001, 0.9999L, 1.0001L);
+
+    printf("\nGenerated files:\n");
+    printf("  poly_zoom1.csv   (x in [0.99,   1.01])\n");
+    printf("  poly_zoom2.csv   (x in [0.9999, 1.0001])\n");
+
+    return 0;
+}
+\end{lstlisting}
+
+\section{Execution Results}
+
+According to the actual program output, the results are as follows:
+
+\begin{lstlisting}
+Quadratic equation: 1.22 x^2 + 3.34 x + 2.28 = 0
+
+[float]
+discriminant              = 0.0291996002
+standard root 1           = -1.43888474
+standard root 2           = -1.29882002
+stable   root 1           = -1.43888474
+stable   root 2           = -1.29882014
+
+[double]
+discriminant              = 0.029200000000001225
+standard root 1           = -1.438885276600965
+standard root 2           = -1.298819641431822
+stable   root 1           = -1.438885276600965
+stable   root 2           = -1.298819641431822
+
+[quad: __float128]
+discriminant             = 0.0291999999999999999999999999999994601
+standard root 1          = -1.43888527660096337022845613382163625
+standard root 2          = -1.29881964143182351501744550552262599
+stable   root 1          = -1.43888527660096337022845613382163625
+stable   root 2          = -1.29881964143182351501744550552262599
+
+Representative sample points near x = 1:
+float  : x = 1.00100005, direct = 1.00032712e-21, expanded = 4.76837158e-07
+double : x = 1.0000000010000001, direct = 1.0000005791827407e-63, expanded = 3.5527136788005009e-15
+quad   : x = 1.0000000000009999999999999999999999, direct = 9.99999999999999999999330873284919921e-85, expanded = -3.08148791101957736488956470813588371e-33
+
+Generated files:
+  poly_zoom1.csv   (x in [0.99,   1.01])
+  poly_zoom2.csv   (x in [0.9999, 1.0001])
+\end{lstlisting}
+
+\begin{figure}[H]
+    \centering
+
+    \begin{subfigure}[b]{0.32\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{pic/zoom1_float.png}
+        \caption{single, range:[0.99,1.01]}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.32\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{pic/zoom1_double.png}
+        \caption{double, range:[0.99,1.01]}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.32\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{pic/zoom1_quad.png}
+        \caption{quad, range:[0.99,1.01]}
+    \end{subfigure}
+
+    \vspace{0.5em}
+
+    \begin{subfigure}[b]{0.32\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{pic/zoom2_float.png}
+        \caption{single,\\ range:[0.9999,1.0001]}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.32\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{pic/zoom2_double.png}
+        \caption{double,\\ range:[0.9999,1.0001]}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.32\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{pic/zoom2_quad.png}
+        \caption{quad,\\ range:[0.9999,1.0001]}
+    \end{subfigure}
+
+    \caption{Computation results under different precisions and zoom ranges.}
+    \label{fig:grouped_results}
+\end{figure}
+
+\section{Result Analysis}
+
+\subsection*{Comparison of the Quadratic Roots}
+
+From the output we can see that the two roots computed with high-precision \texttt{\_\_float128} are approximately
+\[
+x_1\approx -1.4388852766009633702,
+\qquad
+x_2\approx -1.2988196414318235150
+\]
+
+Among them, the root with larger magnitude is almost identical under the standard formula and the stable formula, while the root with smaller magnitude is more sensitive to cancellation error. This is because, for the parameters in this problem, the evaluation of
+\[
+\frac{-b+\sqrt{\Delta}}{2a}
+\]
+contains the subtraction of two nearby numbers, which leads to a loss of significant digits.
+
+The \texttt{float} results already show a visible difference in the second root between the standard formula and the stable formula. In \texttt{double} and \texttt{quad} precision, this difference becomes much smaller. This indicates that increasing floating-point precision can alleviate the problem, but it does not fundamentally remove the instability of the algorithm itself.
+
+\subsection*{Error Analysis of the Expanded Polynomial}
+
+Near $x=1$, the true value of $(x-1)^7$ is extremely small. For example:
+\begin{itemize}
+    \item for \texttt{float}, when $x\approx 1.00100005$, the factored form gives a value on the order of $10^{-21}$, while the expanded form returns a value on the order of $10^{-7}$;
+    \item for \texttt{double}, when $x\approx 1+10^{-9}$, the factored form is about $10^{-63}$, while the expanded form is about $10^{-15}$;
+    \item for \texttt{quad}, when $x\approx 1+10^{-12}$, the factored form is about $10^{-85}$, while the expanded form is still only accurate to roughly the $10^{-33}$ scale.
+\end{itemize}
+
+This shows that although the expanded polynomial is analytically identical to $(x-1)^7$, it has already lost numerical stability in floating-point arithmetic. As $x$ gets closer to 1, the positive and negative terms in the expansion cancel more severely, and the error becomes more pronounced.
+
+The program also generates two zoomed data files:
+\begin{itemize}
+    \item \texttt{poly\_zoom1.csv}: corresponding to $x\in[0.99,1.01]$;
+    \item \texttt{poly\_zoom2.csv}: corresponding to $x\in[0.9999,1.0001]$.
+\end{itemize}
+
+After plotting these two intervals, we can observe that the factored form remains smooth and approaches 0 correctly, while the expanded form deviates significantly near $x=1$, especially in lower precision.
+
+\subsection*{Why the Stable Formula and the Factored Form Are Better}
+
+The two numerical phenomena in this problem both show that \textbf{mathematically equivalent expressions do not necessarily have the same numerical stability}.
+
+\begin{enumerate}[label=\arabic*)]
+    \item for the quadratic equation, the stable formula reduces cancellation error by avoiding subtraction between nearby numbers;
+    \item for the polynomial, the factored form directly preserves the small quantity structure of the problem, whereas the expanded form writes a tiny result as the subtraction of several large terms, which greatly amplifies rounding error;
+    \item therefore, in numerical computation, we must care not only about whether a formula is mathematically correct, but also about whether the computational path is stable.
+\end{enumerate}
+
+\end{document}

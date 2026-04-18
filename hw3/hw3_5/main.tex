@@ -1,0 +1,521 @@
+\documentclass[12pt,a4paper]{article}
+
+% -------------------------------------------------
+% Basic packages
+% -------------------------------------------------
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{ctex}
+\usepackage{fontspec}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{caption}
+\usepackage{float}
+\usepackage{setspace}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{listings}
+
+% -------------------------------------------------
+% Table of contents setup
+% -------------------------------------------------
+\setcounter{tocdepth}{2}
+
+% -------------------------------------------------
+% Font setup (XeLaTeX)
+% -------------------------------------------------
+\setmainfont{Noto Serif}
+\setmonofont{DejaVu Sans Mono}
+
+% -------------------------------------------------
+% Line spacing and paragraph formatting
+% -------------------------------------------------
+\onehalfspacing
+\setlength{\parindent}{2em}
+\setlength{\parskip}{0.4em}
+
+% -------------------------------------------------
+% Header / footer
+% -------------------------------------------------
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0pt}
+
+% -------------------------------------------------
+% Hyperref setup
+% -------------------------------------------------
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    urlcolor=blue,
+    citecolor=blue
+}
+
+% -------------------------------------------------
+% Code listing setup
+% -------------------------------------------------
+\lstset{
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    columns=fullflexible,
+    showstringspaces=false
+}
+
+% -------------------------------------------------
+% User-defined information
+% -------------------------------------------------
+\newcommand{\HomeworkTitle}{Computational Physics Hw\_3}
+\newcommand{\StudentID}{2024141230044}
+\newcommand{\StudentName}{范奕}
+
+\begin{document}
+
+% =================================================
+% Title block + Problem statement on a separate page
+% =================================================
+\begin{center}
+    {\LARGE \textbf{\HomeworkTitle}}\\[1.2em]
+    {\large Student ID: \StudentID}\\[0.5em]
+    {\large Name: \StudentName}
+\end{center}
+
+\vspace{1em}
+\noindent\rule{\textwidth}{0.8pt}
+\vspace{1.5em}
+
+\section*{Problem 5}
+
+Consider the sequence
+\[
+Z_2 = 2,
+\]
+\[
+Z_{n+1} = 2^{\,n-\frac12}\sqrt{1-\sqrt{1-4^{1-n}Z_n^2}},
+\qquad n=2,3,\dots
+\]
+The goal is to compute this sequence numerically, compare the result with the exact limit
+\[
+Z_n \to \pi \quad (n\to\infty),
+\]
+and explain why severe rounding-error propagation appears when $n \ge 30$.
+
+In this report, the original unstable recursion is kept for comparison, while a numerically stable reformulation is used as the reference method. The document also explains why the first error model failed and how the corrected algorithm avoids the same cancellation in both the main recursion and the error analysis.
+
+\newpage
+\tableofcontents
+\newpage
+
+% =================================================
+% Part 1
+% =================================================
+\section{Source Code}
+
+\begin{lstlisting}[language=C]
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include <float.h>
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846264338327950288L
+#endif
+
+/* --------------------------------------------------
+ * Original recursion: intentionally kept to show the
+ * loss of accuracy caused by cancellation.
+ * -------------------------------------------------- */
+void compute_naive(int N, double *z) {
+    for (int i = 0; i <= N; ++i) z[i] = 0.0;
+    z[2] = 2.0;
+
+    for (int n = 2; n < N; ++n) {
+        double a = ldexp(z[n] * z[n], 2 - 2 * n);
+        double inner = 1.0 - sqrt(1.0 - a);
+        z[n + 1] = pow(2.0, n - 0.5) * sqrt(inner);
+    }
+}
+
+/* --------------------------------------------------
+ * Stable recursion:
+ * 1 - sqrt(1-a) = a / (1 + sqrt(1-a))
+ * Hence
+ * z_{n+1} = sqrt(2) * z_n / sqrt(1 + sqrt(1-a_n)).
+ * -------------------------------------------------- */
+void compute_stable(int N, long double *z) {
+    for (int i = 0; i <= N; ++i) z[i] = 0.0L;
+    z[2] = 2.0L;
+
+    for (int n = 2; n < N; ++n) {
+        long double a = ldexpl(z[n] * z[n], 2 - 2 * n);
+        long double s = sqrtl(1.0L - a);
+        z[n + 1] = sqrtl(2.0L) * z[n] / sqrtl(1.0L + s);
+    }
+}
+
+/* Stable evaluation of t = 1 - sqrt(1-a). */
+long double stable_t(long double a) {
+    long double s = sqrtl(1.0L - a);
+    return a / (1.0L + s);
+}
+
+int main(void) {
+    int N;
+    printf("Enter N (recommended 40~60): ");
+    if (scanf("%d", &N) != 1 || N < 2) {
+        printf("Invalid input.\n");
+        return 1;
+    }
+
+    double *z_naive = (double *)malloc((N + 1) * sizeof(double));
+    long double *z_stable = (long double *)malloc((N + 1) * sizeof(long double));
+
+    if (!z_naive || !z_stable) {
+        printf("Memory allocation failed.\n");
+        free(z_naive);
+        free(z_stable);
+        return 1;
+    }
+
+    compute_naive(N, z_naive);
+    compute_stable(N, z_stable);
+
+    const long double eps = (long double)DBL_EPSILON;
+
+    printf("\n==================== Part 1 ====================\n");
+    printf("Naive recursion vs stable recursion\n\n");
+    printf("%3s %20s %20s %18s %18s\n",
+           "n", "z_naive", "z_stable", "|naive-pi|", "|stable-pi|");
+
+    for (int n = 2; n <= N; ++n) {
+        long double err_naive_pi = fabsl((long double)z_naive[n] - M_PI);
+        long double err_stable_pi = fabsl(z_stable[n] - M_PI);
+
+        printf("%3d %20.12Lf %20.12Lf %18.10Le %18.10Le\n",
+               n,
+               (long double)z_naive[n],
+               z_stable[n],
+               err_naive_pi,
+               err_stable_pi);
+    }
+
+    printf("\n==================== Part 2 ====================\n");
+    printf("Real error + stable local error estimate\n\n");
+    printf("%3s %18s %18s %18s %18s %18s\n",
+           "n", "a_n", "t_n(stable)", "real_abs_err",
+           "rel_local_est", "log10(rel_est)");
+
+    for (int n = 2; n < N; ++n) {
+        long double a = ldexpl(z_stable[n] * z_stable[n], 2 - 2 * n);
+        long double t = stable_t(a);
+        long double real_abs_err = fabsl((long double)z_naive[n + 1] - z_stable[n + 1]);
+        long double rel_local_est = 0.5L * eps / t;
+        long double log_rel = log10l(rel_local_est);
+
+        printf("%3d %18.10Le %18.10Le %18.10Le %18.10Le %18.10Lf\n",
+               n, a, t, real_abs_err, rel_local_est, log_rel);
+    }
+
+    printf("\n==================== Part 3 ====================\n");
+    printf("Comparison with the asymptotic estimate\n\n");
+    printf("%3s %18s %18s %18s\n",
+           "n", "rel_local_est", "eps*4^(n-1)/pi^2", "ratio");
+
+    for (int n = 2; n < N; ++n) {
+        long double a = ldexpl(z_stable[n] * z_stable[n], 2 - 2 * n);
+        long double t = stable_t(a);
+        long double rel_local_est = 0.5L * eps / t;
+        long double asym = eps * powl(4.0L, (long double)(n - 1)) / (M_PI * M_PI);
+        long double ratio = rel_local_est / asym;
+
+        printf("%3d %18.10Le %18.10Le %18.10Lf\n",
+               n, rel_local_est, asym, ratio);
+    }
+
+    printf("\n==================== Conclusion ====================\n");
+    printf("1. The naive recursion becomes inaccurate for large n because of catastrophic cancellation.\n");
+    printf("2. The stable recursion avoids that subtraction and remains reliable.\n");
+    printf("3. The same stable formula must also be used in the error analysis itself.\n");
+    printf("4. The local relative error grows approximately like eps * 4^(n-1) / pi^2.\n");
+
+    free(z_naive);
+    free(z_stable);
+    return 0;
+}
+\end{lstlisting}
+
+\section{Theoretical Analysis}
+
+Let
+\[
+a_n = 4^{1-n} Z_n^2.
+\]
+Then the original recursion can be written as
+\[
+Z_{n+1} = 2^{n-\frac12}\sqrt{1-\sqrt{1-a_n}}.
+\]
+
+The dangerous part is
+\[
+1-\sqrt{1-a_n}.
+\]
+When $n$ is large, $a_n$ is very small, so
+\[
+\sqrt{1-a_n} \approx 1 - \frac{a_n}{2},
+\]
+and therefore
+\[
+1-\sqrt{1-a_n} \approx \frac{a_n}{2}.
+\]
+This means the program subtracts two numbers that are both extremely close to $1$, which causes catastrophic cancellation and destroys many significant digits.
+
+To remove this instability, rationalize the expression:
+\[
+1-\sqrt{1-a_n}
+= \frac{(1-\sqrt{1-a_n})(1+\sqrt{1-a_n})}{1+\sqrt{1-a_n}}
+= \frac{a_n}{1+\sqrt{1-a_n}}.
+\]
+Substituting this back into the recursion gives
+\[
+Z_{n+1}
+= \frac{\sqrt{2}\,Z_n}{\sqrt{1+\sqrt{1-a_n}}},
+\]
+which is numerically stable.
+
+For the rounding-error analysis, define
+\[
+t_n = 1 - \sqrt{1-a_n}.
+\]
+Again, $t_n$ must \emph{not} be evaluated by direct subtraction. It must be computed as
+\[
+t_n = \frac{a_n}{1+\sqrt{1-a_n}}.
+\]
+Otherwise, the error model itself suffers from the same cancellation and becomes useless in the large-$n$ regime.
+
+The local relative error of the unstable subtraction is approximately
+\[
+\frac{|\delta t_n|}{|t_n|} \approx \frac{\varepsilon}{t_n},
+\]
+where $\varepsilon$ is the machine precision of \texttt{double}. Since the outer square root halves relative errors to first order, the induced relative error in $Z_{n+1}$ is approximately
+\[
+\frac{|\delta Z_{n+1}|}{|Z_{n+1}|} \approx \frac{1}{2}\frac{\varepsilon}{t_n}.
+\]
+Because $t_n \approx a_n/2$, this becomes
+\[
+\frac{|\delta Z_{n+1}|}{|Z_{n+1}|} \approx \frac{\varepsilon}{a_n}.
+\]
+Using the fact that $Z_n \to \pi$, we obtain
+\[
+a_n = 4^{1-n} Z_n^2 \approx \frac{\pi^2}{4^{n-1}},
+\]
+and therefore
+\[
+\boxed{
+\frac{|\delta Z_{n+1}|}{|Z_{n+1}|}
+\approx
+\frac{\varepsilon 4^{n-1}}{\pi^2}
+}.
+\]
+This estimate explains why the error grows slowly at first but then increases dramatically when $n$ reaches roughly $30$.
+
+\section{Interpretation of the Numerical Results}
+
+The computation contains two separate tracks:
+\begin{enumerate}[label=(\arabic*)]
+    \item the \textbf{naive recursion}, which follows the original formula exactly;
+    \item the \textbf{stable recursion}, which is algebraically equivalent but avoids subtracting nearly equal numbers.
+\end{enumerate}
+
+The stable recursion is used as the numerical reference. In the output,
+\begin{itemize}
+    \item \texttt{|naive-pi|} shows how the direct implementation drifts away from $\pi$;
+    \item \texttt{|stable-pi|} stays small and confirms the correct limiting value;
+    \item \texttt{real\_abs\_err} measures the actual difference between the unstable and stable algorithms;
+    \item \texttt{rel\_local\_est} and \texttt{log10(rel\_est)} show the size and growth trend of the local cancellation error;
+    \item the final table compares the measured local estimate with the asymptotic formula $\varepsilon 4^{n-1}/\pi^2$.
+\end{itemize}
+
+A key correction relative to the failed version is that the error-analysis code no longer computes
+\[
+1 - \sqrt{1-a_n}
+\]
+by direct subtraction. That was the reason the previous implementation produced zeros or unrealistic values in the later rows. The corrected program evaluates the same quantity with the rationalized form, so the analysis remains stable even when the original recursion has already broken down.
+
+\section{Program Output Transcript}
+
+\begin{lstlisting}
+Input N (recommended 40~60): 40
+Naive recursion vs stable recursion
+
+  n              z_naive             z_stable         |naive-pi|        |stable-pi|
+  2      2.000000000000      2.000000000000   1.1415926536e+00   1.1415926536e+00
+  3      2.828427124746      2.828427124746   3.1316552884e-01   3.1316552884e-01
+  4      3.061467458921      3.061467458921   8.0125194669e-02   8.0125194669e-02
+  5      3.121445152258      3.121445152258   2.0147501332e-02   2.0147501332e-02
+  6      3.136548490546      3.136548490546   5.0441630439e-03   5.0441630439e-03
+  7      3.140331156955      3.140331156955   1.2614966351e-03   1.2614966350e-03
+  8      3.141277250933      3.141277250933   3.1540265704e-04   3.1540265702e-04
+  9      3.141513801144      3.141513801144   7.8852445648e-05   7.8852445492e-05
+ 10      3.141572940368      3.141572940367   1.9713221911e-05   1.9713222702e-05
+ 11      3.141587725280      3.141587725277   4.9283098324e-06   4.9283126335e-06
+ 12      3.141591421505      3.141591421511   1.2320851580e-06   1.2320785933e-06
+ 13      3.141592345611      3.141592345570   3.0797871643e-07   3.0801967550e-07
+ 14      3.141592576545      3.141592576585   7.7044788449e-08   7.7004920575e-08
+ 15      3.141592633463      3.141592634339   2.0126544554e-08   1.9251230251e-08
+ 16      3.141592654808      3.141592648777   1.2177964078e-09   4.8128075713e-09
+ 17      3.141592683267      3.141592652387   2.9676917245e-08   1.2032018949e-09
+ 18      3.141592759158      3.141592653289   1.0556790674e-07   3.0080047546e-10
+ 19      3.141592910940      3.141592653515   2.5734987951e-07   7.5200120436e-11
+ 20      3.141594125195      3.141592653571   1.4716053979e-06   1.8800031844e-11
+ 21      3.141596553705      3.141592653585   3.9001150264e-06   4.7000096957e-12
+ 22      3.141596553705      3.141592653589   3.9001150264e-06   1.1750043213e-12
+ 23      3.141674265022      3.141592653589   8.1611431964e-05   2.9375308609e-13
+ 24      3.141829681889      3.141592653590   2.3702829941e-04   7.3440602558e-14
+ 25      3.142451272494      3.141592653590   8.5861890434e-04   1.8362481674e-14
+ 26      3.142451272494      3.141592653590   8.5861890434e-04   4.5926804026e-15
+ 27      3.162277660168      3.141592653590   2.0685006579e-02   1.1505553454e-15
+ 28      3.162277660168      3.141592653590   2.0685006579e-02   2.8991566092e-16
+ 29      3.464101615138      3.141592653590   3.2250896155e-01   7.5026790336e-17
+ 30      4.000000000000      3.141592653590   8.5840734641e-01   2.1250362581e-17
+ 31      8.000000000000      3.141592653590   4.8584073464e+00   7.8062556419e-18
+ 32     16.000000000000      3.141592653590   1.2858407346e+01   4.5536491244e-18
+ 33     32.000000000000      3.141592653590   2.8858407346e+01   3.9031278209e-18
+ 34     64.000000000000      3.141592653590   6.0858407346e+01   3.9031278209e-18
+ 35    128.000000000000      3.141592653590   1.2485840735e+02   3.9031278209e-18
+ 36    256.000000000000      3.141592653590   2.5285840735e+02   3.9031278209e-18
+ 37    512.000000000000      3.141592653590   5.0885840735e+02   3.9031278209e-18
+ 38   1024.000000000000      3.141592653590   1.0208584073e+03   3.9031278209e-18
+ 39   2048.000000000000      3.141592653590   2.0448584073e+03   3.9031278209e-18
+ 40   4096.000000000001      3.141592653590   4.0928584073e+03   3.9031278209e-18
+
+====================
+Theoretical Analysis
+====================
+
+Real error + stable local error estimate
+
+  n               a_n        t_n(stable)       real_abs_err      rel_local_est     log10(rel_est)
+  2   1.0000000000e+00   1.0000000000e+00   1.9342166757e-16   1.1102230246e-16    -15.9545897702
+  3   5.0000000000e-01   2.9289321881e-01   5.2475385148e-16   3.7905385079e-16    -15.4212990870
+  4   1.4644660941e-01   7.6120467489e-02   5.7224190664e-16   1.4585078905e-15    -14.8360912170
+  5   3.8060233744e-02   1.9214719597e-02   1.8292659054e-15   5.7779819218e-15    -14.2382238213
+  6   9.6073597984e-03   4.8152733278e-03   1.3722530057e-14   2.3056282563e-14    -13.6372107141
+  7   2.4076366639e-03   1.2045437948e-03   1.5974634809e-14   9.2169585647e-14    -13.0354123649
+  8   6.0227189741e-04   3.0118130380e-04   1.5560751472e-13   3.6862282307e-13    -12.4334177792
+  9   1.5059065190e-04   7.5298160855e-05   7.9132165230e-13   1.4744357791e-12    -11.8313741390
+ 10   3.7649080428e-05   1.8824717399e-05   2.8011859325e-12   5.8976876046e-12    -11.2293182354
+ 11   9.4123586994e-06   4.7061904238e-06   6.5647550330e-12   2.3590694907e-11    -10.6272592660
+ 12   2.3530952119e-06   1.1765482981e-06   4.0959067735e-11   9.4362724117e-11    -10.0251995301
+ 13   5.8827414905e-07   2.9413711778e-07   3.9867874843e-11   3.7745084096e-10     -9.4231396027
+ 14   1.4706855889e-07   7.3534282149e-08   8.7531430216e-10   1.5098033083e-09     -8.8210796273
+ 15   3.6767141074e-08   1.8383570706e-08   6.0306039791e-09   6.0392131777e-09     -8.2190196400
+ 16   9.1917853531e-09   4.5958926871e-09   3.0880119140e-08   2.4156852655e-08     -7.6169596497
+ 17   2.2979463436e-09   1.1489731724e-09   1.0586870721e-07   9.6627410566e-08     -7.0148996586
+ 18   5.7448658622e-10   2.8724329315e-10   2.5742507963e-07   3.8650964221e-07     -6.4128396673
+ 19   1.4362164658e-10   7.1810823290e-11   1.4716241979e-06   1.5460385688e-06     -5.8107796760
+ 20   3.5905411645e-11   1.7952705823e-11   3.9001197264e-06   6.1841542751e-06     -5.2087196847
+ 21   8.9763529114e-12   4.4881764557e-12   3.9001162014e-06   2.4736617100e-05     -4.6066596934
+ 22   2.2440882278e-12   1.1220441139e-12   8.1611432258e-05   9.8946468401e-05     -4.0045997020
+ 23   5.6102205696e-13   2.8051102848e-13   2.3702829948e-04   3.9578587360e-04     -3.4025397107
+ 24   1.4025551424e-13   7.0127757120e-14   8.5861890436e-04   1.5831434944e-03     -2.8004797194
+ 25   3.5063878560e-14   1.7531939280e-14   8.5861890435e-04   6.3325739776e-03     -2.1984197280
+ 26   8.7659696400e-15   4.3829848200e-15   2.0685006579e-02   2.5330295911e-02     -1.5963597367
+ 27   2.1914924100e-15   1.0957462050e-15   2.0685006579e-02   1.0132118364e-01     -0.9942997454
+ 28   5.4787310250e-16   2.7393655125e-16   3.2250896155e-01   4.0528473457e-01     -0.3922397541
+ 29   1.3696827563e-16   6.8484137813e-17   8.5840734641e-01   1.6211389383e+00      0.2098202373
+ 30   3.4242068906e-17   1.7121034453e-17   4.8584073464e+00   6.4845557531e+00      0.8118802286
+ 31   8.5605172266e-18   4.2802586133e-18   1.2858407346e+01   2.5938223012e+01      1.4139402199
+ 32   2.1401293066e-18   1.0700646533e-18   2.8858407346e+01   1.0375289205e+02      2.0160002113
+ 33   5.3503232666e-19   2.6751616333e-19   6.0858407346e+01   4.1501156820e+02      2.6180602026
+ 34   1.3375808167e-19   6.6879040833e-20   1.2485840735e+02   1.6600462728e+03      3.2201201939
+ 35   3.3439520416e-20   1.6719760208e-20   2.5285840735e+02   6.6401850912e+03      3.8221801852
+ 36   8.3598801041e-21   4.1799400520e-21   5.0885840735e+02   2.6560740365e+04      4.4242401766
+ 37   2.0899700260e-21   1.0449850130e-21   1.0208584073e+03   1.0624296146e+05      5.0263001679
+ 38   5.2249250651e-22   2.6124625325e-22   2.0448584073e+03   4.2497184584e+05      5.6283601592
+ 39   1.3062312663e-22   6.5311563313e-23   4.0928584073e+03   1.6998873833e+06      6.2304201505
+
+====================
+Interpretation of the Numerical Results
+====================
+
+Comparison with the asymptotic estimate
+
+  n      rel_local_est     eps*4^(n-1)/pi^2             ratio
+  2   1.1102230246e-16   8.9991288770e-17      1.2337005501
+  3   3.7905385079e-16   3.5996515508e-16      1.0530292875
+  4   1.4585078905e-15   1.4398606203e-15      1.0129507467
+  5   5.7779819218e-15   5.7594424813e-15      1.0032189644
+  6   2.3056282563e-14   2.3037769925e-14      1.0008035777
+  7   9.2169585647e-14   9.2151079700e-14      1.0002008218
+  8   3.6862282307e-13   3.6860431880e-13      1.0000502009
+  9   1.4744357791e-12   1.4744172752e-12      1.0000125499
+ 10   5.8976876046e-12   5.8976691008e-12      1.0000031375
+ 11   2.3590694907e-11   2.3590676403e-11      1.0000007844
+ 12   9.4362724117e-11   9.4362705613e-11      1.0000001961
+ 13   3.7745084096e-10   3.7745082245e-10      1.0000000490
+ 14   1.5098033083e-09   1.5098032898e-09      1.0000000123
+ 15   6.0392131777e-09   6.0392131592e-09      1.0000000031
+ 16   2.4156852655e-08   2.4156852637e-08      1.0000000008
+ 17   9.6627410566e-08   9.6627410548e-08      1.0000000002
+ 18   3.8650964221e-07   3.8650964219e-07      1.0000000000
+ 19   1.5460385688e-06   1.5460385688e-06      1.0000000000
+ 20   6.1841542751e-06   6.1841542750e-06      1.0000000000
+ 21   2.4736617100e-05   2.4736617100e-05      1.0000000000
+ 22   9.8946468401e-05   9.8946468401e-05      1.0000000000
+ 23   3.9578587360e-04   3.9578587360e-04      1.0000000000
+ 24   1.5831434944e-03   1.5831434944e-03      1.0000000000
+ 25   6.3325739776e-03   6.3325739776e-03      1.0000000000
+ 26   2.5330295911e-02   2.5330295911e-02      1.0000000000
+ 27   1.0132118364e-01   1.0132118364e-01      1.0000000000
+ 28   4.0528473457e-01   4.0528473457e-01      1.0000000000
+ 29   1.6211389383e+00   1.6211389383e+00      1.0000000000
+ 30   6.4845557531e+00   6.4845557531e+00      1.0000000000
+ 31   2.5938223012e+01   2.5938223012e+01      1.0000000000
+ 32   1.0375289205e+02   1.0375289205e+02      1.0000000000
+ 33   4.1501156820e+02   4.1501156820e+02      1.0000000000
+ 34   1.6600462728e+03   1.6600462728e+03      1.0000000000
+ 35   6.6401850912e+03   6.6401850912e+03      1.0000000000
+ 36   2.6560740365e+04   2.6560740365e+04      1.0000000000
+ 37   1.0624296146e+05   1.0624296146e+05      1.0000000000
+ 38   4.2497184584e+05   4.2497184584e+05      1.0000000000
+ 39   1.6998873833e+06   1.6998873833e+06      1.0000000000
+
+====================
+Final Conclusion
+====================
+
+1. The naive recursion becomes inaccurate for large n because of catastrophic cancellation.
+2. The stable recursion avoids that subtraction and remains reliable.
+3. The same stable formula must also be used in the error analysis itself.
+4. The local relative error grows approximately like eps * 4^(n-1) / pi^2.
+\end{lstlisting}
+
+\section{Final Conclusion}
+
+This problem is not difficult from the theoretical point of view: the sequence converges to $\pi$. The real challenge is numerical stability. The original formula contains the term
+\[
+1 - \sqrt{1-a_n},
+\]
+which becomes numerically dangerous once $a_n$ is very small. As a result, direct floating-point evaluation loses significant digits and the error is amplified in later steps.
+
+The correct fix is not merely to compute the sequence with higher precision, but to rewrite the formula into a stable form and to use the same stable form in the error estimator. After this correction, the program clearly demonstrates three facts:
+\begin{enumerate}[label=(\arabic*)]
+    \item the exact limit is $\pi$;
+    \item the direct recursion deteriorates for large $n$ because of catastrophic cancellation;
+    \item the size of the local relative error is well explained by the estimate
+    \[
+    \frac{\varepsilon 4^{n-1}}{\pi^2}.
+    \]
+\end{enumerate}
+
+\vfill
+\begin{center}
+    \textit{End of Report}
+\end{center}
+
+\end{document}

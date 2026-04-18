@@ -1,0 +1,393 @@
+\documentclass[12pt,a4paper]{article}
+
+% -------------------------------------------------
+% Basic packages
+% -------------------------------------------------
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{fontspec}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{setspace}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{listings}
+
+% -------------------------------------------------
+% Table of contents setup
+% -------------------------------------------------
+\setcounter{tocdepth}{2}
+
+% -------------------------------------------------
+% Font setup
+% -------------------------------------------------
+\setmainfont{Noto Serif}
+\setmonofont{DejaVu Sans Mono}
+
+% -------------------------------------------------
+% Line spacing and paragraph formatting
+% -------------------------------------------------
+\onehalfspacing
+\setlength{\parindent}{2em}
+\setlength{\parskip}{0.4em}
+
+% -------------------------------------------------
+% Header / footer
+% -------------------------------------------------
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0pt}
+
+% -------------------------------------------------
+% Hyperref setup
+% -------------------------------------------------
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    urlcolor=blue,
+    citecolor=blue
+}
+
+% -------------------------------------------------
+% Code listing setup
+% -------------------------------------------------
+\lstset{
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    columns=fullflexible,
+    showstringspaces=false
+}
+
+% -------------------------------------------------
+% User-defined information
+% -------------------------------------------------
+\newcommand{\HomeworkTitle}{Computational Physics Report}
+\newcommand{\StudentID}{2024141230044}
+\newcommand{\StudentName}{Fanyi}
+
+\begin{document}
+
+% =================================================
+% Title block
+% =================================================
+\begin{center}
+    {\LARGE \textbf{\HomeworkTitle}}\\[1.2em]
+    {\large Student ID: \StudentID}\\[0.5em]
+    {\large Name: \StudentName}
+\end{center}
+
+\vspace{0.5em}
+\noindent\rule{\textwidth}{0.8pt}
+\vspace{0.5em}
+
+\section*{Problem 1}
+
+Use the bisection method to calculate the roots of
+\[
+f(x)=2-x-e^{-x}.
+\]
+
+The purpose of this report is to determine suitable bracketing intervals for the two real roots, implement the bisection algorithm in C, and analyze the numerical behavior and convergence of the method.
+
+\newpage
+\tableofcontents
+\newpage
+
+% =================================================
+% Part 1
+% =================================================
+\section{Algorithm Principle}
+
+\subsection*{Bisection Method}
+
+For a continuous function $f(x)$ on an interval $[a,b]$, if
+\[
+f(a)f(b)<0,
+\]
+then, by the intermediate value theorem, there exists at least one root in $[a,b]$.
+
+The bisection method repeatedly halves such an interval. At each step, we compute the midpoint
+\[
+m=\frac{a+b}{2}
+\]
+and evaluate $f(m)$.
+
+If
+\[
+f(a)f(m)<0,
+\]
+then the root lies in $[a,m]$; otherwise it lies in $[m,b]$. Repeating this process produces a sequence of smaller and smaller intervals that converge to the root.
+
+In this problem, we study the equation
+\[
+f(x)=2-x-e^{-x}=0.
+\]
+Since $e^{-x}$ is continuous for all real $x$, the function $f(x)$ is continuous everywhere, so the bisection method is applicable once a valid bracketing interval is found.
+
+\subsection*{Bracketing the Roots}
+
+Before applying the algorithm, we first examine the sign of the function at several points:
+\[
+f(-2)=2-(-2)-e^2=4-e^2<0,
+\]
+\[
+f(-1)=2-(-1)-e=3-e>0.
+\]
+Therefore, one root lies in the interval
+\[
+[-2,-1].
+\]
+
+Similarly,
+\[
+f(1)=2-1-e^{-1}=1-e^{-1}>0,
+\]
+\[
+f(2)=2-2-e^{-2}=-e^{-2}<0.
+\]
+Hence another root lies in
+\[
+[1,2].
+\]
+
+So the equation has two real roots, and the bisection method is applied separately on these two intervals.
+
+\subsection*{Stopping Criterion and Error Estimate}
+
+If the initial interval length is $L_0=b-a$, then after $n$ bisection steps the interval length becomes
+\[
+L_n=\frac{L_0}{2^n}.
+\]
+Thus the absolute error is bounded by
+\[
+|x_n-x^\ast|\leq \frac{b-a}{2^{n+1}},
+\]
+where $x^\ast$ is the exact root and $x_n$ is the current midpoint approximation.
+
+In the program, the iteration is stopped when either
+\[
+\frac{b-a}{2}<\varepsilon
+\]
+or $|f(m)|<\varepsilon$, with
+\[
+\varepsilon=10^{-12}.
+\]
+This ensures that the computed root is accurate to about twelve decimal places.
+
+\section{Program Code}
+
+\begin{lstlisting}[language=C]
+#include <stdio.h>
+#include <math.h>
+
+#define EPS 1e-12
+#define MAX_ITER 1000
+
+/* f(x) = 2 - x - e^(-x) */
+double f(double x) {
+    return 2.0 - x - exp(-x);
+}
+
+/* Bisection method on [a, b] */
+double bisection(double a, double b, double eps,
+                 int max_iter, int *iters) {
+    double fa = f(a);
+    double fb = f(b);
+
+    if (fa * fb > 0.0) {
+        return NAN;
+    }
+
+    double mid, fmid;
+    int i = 0;
+
+    while ((b - a) / 2.0 > eps && i < max_iter) {
+        mid = 0.5 * (a + b);
+        fmid = f(mid);
+
+        if (fabs(fmid) < eps) {
+            i++;
+            if (iters) *iters = i;
+            return mid;
+        }
+
+        if (fa * fmid < 0.0) {
+            b = mid;
+            fb = fmid;
+        } else {
+            a = mid;
+            fa = fmid;
+        }
+
+        i++;
+    }
+
+    if (iters) *iters = i;
+    return 0.5 * (a + b);
+}
+
+int main(void) {
+    int iter1 = 0, iter2 = 0;
+
+    double root1 = bisection(-2.0, -1.0, EPS, MAX_ITER, &iter1);
+    double root2 = bisection( 1.0,  2.0, EPS, MAX_ITER, &iter2);
+
+    printf("f(-2) = %.15f\n", f(-2.0));
+    printf("f(-1) = %.15f\n", f(-1.0));
+    printf("f(1)  = %.15f\n", f(1.0));
+    printf("f(2)  = %.15f\n", f(2.0));
+
+    printf("\n");
+    printf("root in [-2,-1] = %.15f (iterations = %d)\n",
+           root1, iter1);
+    printf("f(root1) = %.15e\n", f(root1));
+
+    printf("root in [1,2] = %.15f (iterations = %d)\n",
+           root2, iter2);
+    printf("f(root2) = %.15e\n", f(root2));
+
+    return 0;
+}
+\end{lstlisting}
+
+\section{Execution Results}
+
+According to the actual output of the final submitted program, the results are as follows:
+
+\begin{lstlisting}
+f(-2) = -3.389056098930650
+f(-1) = 0.281718171540955
+f(1)  = 0.632120558828558
+f(2)  = -0.135335283236613
+
+root in [-2,-1] = -1.146193220620262 (iterations = 39)
+f(root1) = 6.883382752675971e-13
+root in [1,2] = 1.841405660437886 (iterations = 34)
+f(root2) = -7.783218514134660e-13
+\end{lstlisting}
+
+For convenience, the first several iterations of each bracket are listed below.
+
+\begin{table}[H]
+\centering
+\caption{First six iterations for the root in $[-2,-1]$.}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{cccccc}
+\toprule
+Iteration & $a$ & $b$ & $m=(a+b)/2$ & $f(m)$ & New interval \\
+\midrule
+1 & -2.000000 & -1.000000 & -1.500000 & -0.981689 & $[-1.5,-1]$ \\
+2 & -1.500000 & -1.000000 & -1.250000 & -0.240343 & $[-1.25,-1]$ \\
+3 & -1.250000 & -1.000000 & -1.125000 & 0.044783 & $[-1.25,-1.125]$ \\
+4 & -1.250000 & -1.125000 & -1.187500 & -0.091374 & $[-1.1875,-1.125]$ \\
+5 & -1.187500 & -1.125000 & -1.156250 & -0.021743 & $[-1.15625,-1.125]$ \\
+6 & -1.156250 & -1.125000 & -1.140625 & 0.011902 & $[-1.15625,-1.140625]$ \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{First six iterations for the root in $[1,2]$.}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{cccccc}
+\toprule
+Iteration & $a$ & $b$ & $m=(a+b)/2$ & $f(m)$ & New interval \\
+\midrule
+1 & 1.000000 & 2.000000 & 1.500000 & 0.276870 & $[1.5,2]$ \\
+2 & 1.500000 & 2.000000 & 1.750000 & 0.076226 & $[1.75,2]$ \\
+3 & 1.750000 & 2.000000 & 1.875000 & -0.028355 & $[1.75,1.875]$ \\
+4 & 1.750000 & 1.875000 & 1.812500 & 0.024254 & $[1.8125,1.875]$ \\
+5 & 1.812500 & 1.875000 & 1.843750 & -0.001973 & $[1.8125,1.84375]$ \\
+6 & 1.812500 & 1.843750 & 1.828125 & 0.011160 & $[1.828125,1.84375]$ \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\section{Result Analysis}
+
+\subsection*{Comparison of the Two Roots}
+
+From the output we can see that the equation
+\[
+2-x-e^{-x}=0
+\]
+has two real roots, approximately
+\[
+x_1\approx -1.146193220620262,
+\qquad
+x_2\approx 1.841405660437886.
+\]
+
+Substituting them back into the original function gives
+\[
+f(x_1)\approx 6.88\times 10^{-13},
+\qquad
+f(x_2)\approx -7.78\times 10^{-13},
+\]
+which confirms that both numerical solutions satisfy the equation to very high accuracy.
+
+The left root requires 39 iterations, while the right root requires 34 iterations. This small difference is expected, because the stopping condition depends not only on the bracket size but also on the local value of $f(m)$ during the iteration.
+
+\subsection*{Why Two Real Roots Exist}
+
+The function
+\[
+f(x)=2-x-e^{-x}
+\]
+is continuous on the entire real line. By checking its sign at selected points, we found one sign change between $x=-2$ and $x=-1$, and another sign change between $x=1$ and $x=2$. Therefore, there must be at least two real roots.
+
+This can also be understood qualitatively from the shape of the function. For large negative $x$, the term $e^{-x}$ becomes very large, so $f(x)$ is strongly negative. As $x$ increases, the function crosses the $x$-axis once on the negative side. Then it becomes positive for a while, but because of the $-x$ term it eventually decreases again and crosses the $x$-axis a second time on the positive side.
+
+\subsection*{Convergence Behavior of the Bisection Method}
+
+A key feature of the bisection method is that it is guaranteed to converge once a valid bracket is known and the function is continuous on that interval. In each iteration the interval length is reduced by a factor of two, so the error bound decreases linearly with respect to the number of iterations.
+
+For both roots in this problem, the method behaves exactly as expected: the midpoint sequence steadily approaches the exact solution and the function value approaches zero. The iteration tables clearly show how the sign of $f(m)$ determines the next interval and how the bracket shrinks in a controlled and predictable way.
+
+The price for this robustness is speed. Compared with Newton's method or the secant method, the bisection method usually converges more slowly because it only uses sign information, rather than slope information, to update the approximation.
+
+\subsection*{Advantages and Limitations}
+
+This problem illustrates the main strengths of the bisection method:
+\begin{enumerate}[label=\arabic*)]
+    \item it is easy to implement;
+    \item it is numerically stable;
+    \item once a correct bracketing interval is available, convergence is guaranteed.
+\end{enumerate}
+
+At the same time, it also has clear limitations:
+\begin{enumerate}[label=\arabic*)]
+    \item one must first locate intervals in which the function changes sign;
+    \item the convergence rate is slower than that of derivative-based methods;
+    \item if a function has multiple nearby roots or complicated oscillatory behavior, finding suitable brackets may itself become difficult.
+\end{enumerate}
+
+Therefore, the bisection method is often used as a reliable baseline method or as part of a hybrid strategy: it provides guaranteed convergence, while faster methods may be used once the root has been safely bracketed.
+
+\subsection*{Conclusion}
+
+In this report, the equation $2-x-e^{-x}=0$ was solved successfully by the bisection method. Two roots were found,
+\[
+x_1\approx -1.146193220620262,
+\qquad
+x_2\approx 1.841405660437886,
+\]
+and both satisfy the equation to within approximately $10^{-12}$.
+
+The numerical results confirm the expected properties of the bisection method: it is simple, robust, and reliable, although relatively slow.\n\nFor this reason, it remains one of the most important basic algorithms in computational physics.
+
+End of Report
+
+\end{document}

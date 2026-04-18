@@ -1,0 +1,12 @@
+IEEE 754 half precision (binary16)
+---------------------------------
+effective precision p      = 11 bits
+machine epsilon eps        = 2^(1-p) = 0.0009765625
+unit roundoff u            = 2^(-p)  = 0.00048828125
+min positive normal        = 6.103515625e-05
+min positive subnormal     = 5.9604644775390625e-08
+max finite number          = 65504
+approx decimal digits      = 3.3113
+
+This compiler does not provide _Float16 / FLT16_* macros.
+But the theoretical values above are the exact IEEE 754 binary16 values.

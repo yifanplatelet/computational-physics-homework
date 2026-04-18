@@ -1,0 +1,283 @@
+\documentclass[12pt,a4paper]{article}
+
+% -------------------------------------------------
+% Basic packages
+% -------------------------------------------------
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{fontspec}
+\usepackage{ctex}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{caption}
+\usepackage{float}
+\usepackage{setspace}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{listings}
+
+% -------------------------------------------------
+% Table of contents setup
+% -------------------------------------------------
+\setcounter{tocdepth}{2}
+
+% -------------------------------------------------
+% Font setup
+% -------------------------------------------------
+\setmainfont{Noto Serif}
+\setmonofont{DejaVu Sans Mono}
+
+% -------------------------------------------------
+% Line spacing and paragraph formatting
+% -------------------------------------------------
+\onehalfspacing
+\setlength{\parindent}{2em}
+\setlength{\parskip}{0.4em}
+
+% -------------------------------------------------
+% Header / footer
+% -------------------------------------------------
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0pt}
+
+% -------------------------------------------------
+% Hyperref setup
+% -------------------------------------------------
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    urlcolor=blue,
+    citecolor=blue
+}
+
+% -------------------------------------------------
+% Code listing setup
+% -------------------------------------------------
+\lstset{
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    columns=fullflexible,
+    showstringspaces=false
+}
+
+% -------------------------------------------------
+% User-defined information
+% -------------------------------------------------
+\newcommand{\HomeworkTitle}{Computational Physics Ex\_3}
+\newcommand{\StudentID}{2024141230044}
+\newcommand{\StudentName}{范奕}
+
+\begin{document}
+
+% =================================================
+% Title block
+% =================================================
+\begin{center}
+    {\LARGE \textbf{\HomeworkTitle}}\\[1.2em]
+    {\large Student ID: \StudentID}\\[0.5em]
+    {\large Name: \StudentName}
+\end{center}
+
+\vspace{0.5em}
+\noindent\rule{\textwidth}{0.8pt}
+\vspace{0.5em}
+
+\section*{Problem 3 \& Problem 4}
+
+This document records the C programs and the actual execution results for the following two tasks:
+\begin{itemize}
+    \item Problem 3: check the system endianness of the computer.
+    \item Problem 4: check the machine epsilon of \texttt{float}, \texttt{double}, and extended precision (here tested with \texttt{long double}).
+\end{itemize}
+
+The source files used in this experiment are:
+\begin{itemize}
+    \item \texttt{3.c}: solution to Problem 3.
+    \item \texttt{4.c}: solution to Problem 4 without using \texttt{float.h}.
+    \item \texttt{4f.c}: solution to Problem 4 using constants from \texttt{float.h}.
+\end{itemize}
+
+\newpage
+\tableofcontents
+\newpage
+
+% =================================================
+% Part 1
+% =================================================
+\section{Source Code}
+
+\subsection{Problem 3: Check Endianness}
+
+\begin{lstlisting}[language=C]
+#include <stdio.h>
+
+int main() {
+    unsigned int x = 1;
+    char *p = (char *)&x;
+
+    if (*p == 1) {
+        printf("当前系统是小端序（Little Endian）\n");
+    } else {
+        printf("当前系统是大端序（Big Endian）\n");
+    }
+
+    return 0;
+}
+\end{lstlisting}
+
+\subsection{Problem 4: Compute Machine Epsilon Without \texttt{float.h}}
+
+\begin{lstlisting}[language=C]
+#include <stdio.h>
+
+int main() {
+    float feps = 1.0f;
+    double deps = 1.0;
+    long double leps = 1.0L;
+
+    while ((1.0f + feps / 2.0f) != 1.0f) {
+        feps /= 2.0f;
+    }
+
+    while ((1.0 + deps / 2.0) != 1.0) {
+        deps /= 2.0;
+    }
+
+    while ((1.0L + leps / 2.0L) != 1.0L) {
+        leps /= 2.0L;
+    }
+
+    printf("Machine epsilon for float       = %.20e\n", feps);
+    printf("Machine epsilon for double      = %.20e\n", deps);
+    printf("Machine epsilon for long double = %.20Le\n", leps);
+
+    return 0;
+}
+\end{lstlisting}
+
+\subsection{Problem 4: Read Machine Epsilon From \texttt{float.h}}
+
+\begin{lstlisting}[language=C]
+#include <stdio.h>
+#include <float.h>
+
+int main() {
+    printf("FLT_EPSILON  = %.20e\n", FLT_EPSILON);
+    printf("DBL_EPSILON  = %.20e\n", DBL_EPSILON);
+    printf("LDBL_EPSILON = %.20Le\n", LDBL_EPSILON);
+    return 0;
+}
+\end{lstlisting}
+
+% =================================================
+% Part 3
+% =================================================
+\section{Numerical Method}
+
+\subsection*{Problem 3: Principle of Endianness Detection}
+
+The program stores the integer value \texttt{1} in memory and then reads the first byte at its address.
+
+If the first byte is \texttt{1}, then the least significant byte is stored at the lowest address, so the system is \textbf{little endian}. Otherwise, the system is \textbf{big endian}.
+
+In other words, the test is based on the memory layout of an integer.
+
+\subsection*{Problem 4: Definition of Machine Epsilon}
+
+For a floating-point type, machine epsilon is the smallest positive number \(\varepsilon\) such that
+\[
+1 + \varepsilon \neq 1.
+\]
+
+In the program \texttt{4.c}, the value of \(\varepsilon\) is found by starting from \texttt{1.0} and repeatedly dividing by \texttt{2}. When halving once more no longer changes the value of \texttt{1}, the current value is taken as the machine epsilon.
+
+\subsection*{Using \texttt{float.h}}
+
+In the program \texttt{4f.c}, the standard header \texttt{float.h} is used. It directly provides the implementation-defined constants
+\texttt{FLT\_EPSILON}, \texttt{DBL\_EPSILON}, and \texttt{LDBL\_EPSILON}.
+
+This provides a convenient way to verify the numerical results obtained in \texttt{4.c}.
+
+% =================================================
+% Part 4
+% =================================================
+\section{Program Output}
+
+Below is the actual output obtained on the computer.
+
+\subsection*{Problem 3 Output}
+
+\begin{lstlisting}
+当前系统是小端序（Little Endian）
+\end{lstlisting}
+
+Therefore, the current machine uses \textbf{little-endian} byte order.
+
+\subsection*{Problem 4 Output From \texttt{4.c}}
+
+\begin{lstlisting}
+Machine epsilon for float       = 1.19209289550781250000e-07
+Machine epsilon for double      = 2.22044604925031308085e-16
+Machine epsilon for long double = 1.08420217248550443401e-19
+\end{lstlisting}
+
+\subsection*{Problem 4 Output From \texttt{4f.c}}
+
+\begin{lstlisting}
+FLT_EPSILON  = 1.19209289550781250000e-07
+DBL_EPSILON  = 2.22044604925031308085e-16
+LDBL_EPSILON = 1.08420217248550443401e-19
+\end{lstlisting}
+
+The results from \texttt{4.c} and \texttt{4f.c} are identical, which confirms that the iterative computation is correct.
+
+% =================================================
+% Part 5
+% =================================================
+\section{Discussion}
+
+\subsection*{Discussion for Problem 3}
+
+The result shows that this computer is little endian. This means that for multi-byte data types, the low-order byte is stored at the low memory address.
+
+This is the most common byte order on modern x86 and x86\_64 systems.
+
+\subsection*{Discussion for Problem 4}
+
+From the output, the machine epsilon values are:
+\[
+\varepsilon_{\mathrm{float}} = 1.1920928955078125 \times 10^{-7},
+\]
+\[
+\varepsilon_{\mathrm{double}} = 2.22044604925031308085 \times 10^{-16},
+\]
+\[
+\varepsilon_{\mathrm{long\ double}} = 1.08420217248550443401 \times 10^{-19}.
+\]
+
+These values show that \texttt{double} has much higher precision than \texttt{float}, and \texttt{long double} has even finer precision on this platform.
+
+It should also be noted that the assignment mentions \emph{quadruple precision}, but in standard C the type used here is \texttt{long double}. On different platforms, \texttt{long double} may or may not correspond to true quadruple precision. Therefore, the third result should be interpreted as the machine epsilon of the platform's \texttt{long double} implementation.
+
+\subsection*{Overall Conclusion}
+
+The experiment verifies two basic properties of the current computer system:
+\begin{itemize}
+    \item The machine is \textbf{little endian}.
+    \item The machine epsilon values for \texttt{float}, \texttt{double}, and \texttt{long double} were successfully obtained.
+    \item The direct iterative method and the constants in \texttt{float.h} give the same results, confirming the correctness of the program.
+\end{itemize}
+
+\vfill
+\begin{center}
+    \textit{End of Report}
+\end{center}
+
+\end{document}

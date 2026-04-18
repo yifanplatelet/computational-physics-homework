@@ -1,0 +1,285 @@
+\documentclass[12pt,a4paper]{article}
+
+% -------------------------------------------------
+% Basic packages
+% -------------------------------------------------
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{fontspec}
+\usepackage{ctex}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{caption}
+\usepackage{float}
+\usepackage{setspace}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{listings}
+
+% -------------------------------------------------
+% Table of contents setup
+% -------------------------------------------------
+\setcounter{tocdepth}{2}
+
+% -------------------------------------------------
+% Font setup
+% -------------------------------------------------
+\setmainfont{Noto Serif}
+\setmonofont{DejaVu Sans Mono}
+
+% -------------------------------------------------
+% Line spacing and paragraph formatting
+% -------------------------------------------------
+\onehalfspacing
+\setlength{\parindent}{2em}
+\setlength{\parskip}{0.4em}
+
+% -------------------------------------------------
+% Header / footer
+% -------------------------------------------------
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0pt}
+
+% -------------------------------------------------
+% Hyperref setup
+% -------------------------------------------------
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    urlcolor=blue,
+    citecolor=blue
+}
+
+% -------------------------------------------------
+% Code listing setup
+% -------------------------------------------------
+\lstset{
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    columns=fullflexible,
+    showstringspaces=false
+}
+
+% -------------------------------------------------
+% User-defined information
+% -------------------------------------------------
+\newcommand{\HomeworkTitle}{Computational Physics Ex\_3}
+\newcommand{\StudentID}{2024141230044}
+\newcommand{\StudentName}{范奕}
+
+\begin{document}
+
+% =================================================
+% Title block
+% =================================================
+\begin{center}
+    {\LARGE \textbf{\HomeworkTitle}}\\[1.2em]
+    {\large Student ID: \StudentID}\\[0.5em]
+    {\large Name: \StudentName}
+\end{center}
+
+\vspace{0.5em}
+\noindent\rule{\textwidth}{0.8pt}
+\vspace{0.5em}
+
+\section*{Problem 2}
+
+使用 Machin 公式
+\[
+\frac{\pi}{4}=4\arctan\left(\frac{1}{5}\right)-\arctan\left(\frac{1}{239}\right)
+\]
+并结合反正切级数
+\[
+\arctan(x)=x-\frac{x^3}{3}+\frac{x^5}{5}-\frac{x^7}{7}+\cdots
+\]
+计算 $\pi$ 的值，并与程序中的 $\pi$ 真值进行比较。
+
+\newpage
+\tableofcontents
+\newpage
+
+% =================================================
+% Part 1
+% =================================================
+\section{问题说明}
+
+Machin 公式是一种经典的高精度计算 $\pi$ 的方法。其优点在于：
+\begin{enumerate}[label=\arabic*)]
+    \item 将 $\pi$ 的计算转化为两个较小自变量的 $\arctan$ 求值；
+    \item 当 $x=\frac{1}{5}$ 与 $x=\frac{1}{239}$ 时，级数收敛非常快；
+    \item 配合 \texttt{quadmath.h} 中的 \texttt{\_\_float128} 高精度浮点类型，可以较稳定地得到 30 位小数结果。
+\end{enumerate}
+
+本题中采用如下思路：
+\begin{enumerate}[label=\arabic*)]
+    \item 用反正切幂级数计算 $\arctan(1/5)$；
+    \item 用反正切幂级数计算 $\arctan(1/239)$；
+    \item 代入 Machin 公式计算 $\pi$；
+    \item 使用 \texttt{acosq(-1.0Q)} 作为程序中的 $\pi$ 真值；
+    \item 比较两者的绝对误差。
+\end{enumerate}
+
+\section{算法原理}
+
+\subsection{Machin 公式}
+
+\[
+\frac{\pi}{4}=4\arctan\left(\frac{1}{5}\right)-\arctan\left(\frac{1}{239}\right)
+\]
+
+因此可得
+\[
+\pi = 4\left(4\arctan\left(\frac{1}{5}\right)-\arctan\left(\frac{1}{239}\right)\right)
+\]
+
+\subsection{反正切级数展开}
+
+当 $|x|\le 1$ 时，反正切函数有幂级数展开
+\[
+\arctan(x)=\sum_{n=0}^{\infty}(-1)^n\frac{x^{2n+1}}{2n+1}
+\]
+
+即
+\[
+\arctan(x)=x-\frac{x^3}{3}+\frac{x^5}{5}-\frac{x^7}{7}+\cdots
+\]
+
+由于本题中使用的 $x=\frac{1}{5}$ 与 $x=\frac{1}{239}$ 都很小，所以该级数收敛很快。程序中采用“当当前项绝对值小于 $10^{-40}$ 时停止”的策略，保证结果足够精确。
+
+\section{程序代码}
+
+\begin{lstlisting}[language=C]
+#include <stdio.h>
+#include <quadmath.h>
+
+// 用反正切级数计算 arctan(x)
+__float128 arctan_series(__float128 x)
+{
+    __float128 sum = 0.0Q;
+    __float128 term = x;
+    __float128 x2 = x * x;
+    int n = 0;
+
+    while (fabsq(term) > 1e-40Q) {
+        sum += term / (2 * n + 1);
+        term *= -x2;
+        n++;
+    }
+
+    return sum;
+}
+
+int main()
+{
+    // Machin公式计算pi
+    __float128 a = arctan_series(1.0Q / 5.0Q);
+    __float128 b = arctan_series(1.0Q / 239.0Q);
+    __float128 pi_calc = 4.0Q * (4.0Q * a - b);
+
+    // pi真值：利用 acos(-1)
+    __float128 pi_true = acosq(-1.0Q);
+
+    // 绝对误差
+    __float128 abs_error = fabsq(pi_calc - pi_true);
+
+    char buf1[128], buf2[128], buf3[128];
+
+    quadmath_snprintf(buf1, sizeof(buf1), "%.30Qf", pi_calc);
+    quadmath_snprintf(buf2, sizeof(buf2), "%.30Qf", pi_true);
+    quadmath_snprintf(buf3, sizeof(buf3), "%.40Qe", abs_error);
+
+    printf("Machin公式计算得到的 pi = %s\n", buf1);
+    printf("pi 真值(acos(-1))     = %s\n", buf2);
+    printf("绝对误差              = %s\n", buf3);
+
+    return 0;
+}
+\end{lstlisting}
+
+\section{运行结果}
+
+根据程序实际输出，结果如下：
+
+\begin{lstlisting}
+Machin公式计算得到的 pi = 3.141592653589793238462643383280
+pi 真值(acos(-1))     = 3.141592653589793238462643383280
+绝对误差              = 0.0000000000000000000000000000000000000000e+00
+\end{lstlisting}
+
+\section{结果分析}
+
+\subsection{与真值对比}
+
+从输出结果可见，利用 Machin 公式和反正切级数计算得到的 $\pi$ 值为
+\[
+3.141592653589793238462643383280
+\]
+
+而程序中通过 \texttt{acosq(-1.0Q)} 得到的 $\pi$ 真值也是
+\[
+3.141592653589793238462643383280
+\]
+
+二者在 30 位小数范围内完全一致，程序输出的绝对误差为
+\[
+0.0000000000000000000000000000000000000000\times 10^0
+\]
+
+也就是在当前输出精度下，误差为 0。
+
+\subsection{误差来源分析}
+
+虽然程序输出显示误差为 0，但这并不表示数学意义上误差绝对为零，而是说明：
+\begin{enumerate}[label=\arabic*)]
+    \item 在 \texttt{\_\_float128} 的表示精度范围内，两者已经一致；
+    \item 输出格式只显示了有限位数，因此更小的误差无法显示出来；
+    \item Machin 公式本身收敛快，数值稳定性较好，因此在本题精度要求下非常适合计算 $\pi$。
+\end{enumerate}
+
+\subsection{为什么 Machin 公式效果好}
+
+Machin 公式的优势在于：它避免了直接对 $\pi$ 进行慢收敛级数计算，而是将问题拆成两个小参数的反正切计算。由于：
+\[
+\left|\frac{1}{239}\right| \ll 1
+\]
+所以 $\arctan(1/239)$ 的级数项衰减极快；同时 $\arctan(1/5)$ 也具有较快收敛速度。因此整体算法效率较高，且容易达到高精度。
+
+\section{编译与运行说明}
+
+在支持 \texttt{quadmath} 的 GNU 编译环境下，可使用如下命令编译：
+
+\begin{lstlisting}[language=bash]
+gcc machin_pi.c -o machin_pi -lquadmath
+\end{lstlisting}
+
+运行程序：
+
+\begin{lstlisting}[language=bash]
+./machin_pi
+\end{lstlisting}
+
+\section{结论}
+
+本实验使用 Machin 公式
+\[
+\frac{\pi}{4}=4\arctan\left(\frac{1}{5}\right)-\arctan\left(\frac{1}{239}\right)
+\]
+以及反正切幂级数展开，实现了对 $\pi$ 的高精度计算。程序结果表明：
+
+\begin{enumerate}[label=\arabic*)]
+    \item 计算得到的 $\pi$ 值为 $3.141592653589793238462643383280$；
+    \item 与程序真值 \texttt{acosq(-1.0Q)} 在 30 位小数范围内完全一致；
+    \item 输出绝对误差为 0（在当前显示精度下）；
+    \item Machin 公式收敛速度快、数值稳定，适合用于高精度计算 $\pi$。
+\end{enumerate}
+
+因此，本题所用算法能够满足“计算 $\pi$ 到 30 位小数”的要求，且结果正确可靠。
+
+\end{document}

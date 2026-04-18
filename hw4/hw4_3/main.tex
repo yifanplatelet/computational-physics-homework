@@ -1,0 +1,223 @@
+\documentclass[12pt,a4paper]{article}
+
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{fontspec}
+\usepackage{ctex}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{caption}
+\usepackage{float}
+\usepackage{setspace}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{listings}
+\renewcommand{\tablename}{Table}
+
+\setcounter{tocdepth}{2}
+\setmainfont{Noto Serif}
+\setmonofont{DejaVu Sans Mono}
+\onehalfspacing
+\setlength{\parindent}{2em}
+\setlength{\parskip}{0.4em}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0pt}
+\hypersetup{colorlinks=true,linkcolor=blue,urlcolor=blue,citecolor=blue}
+\lstset{basicstyle=\ttfamily\small,breaklines=true,frame=single,columns=fullflexible,showstringspaces=false}
+
+\newcommand{\HomeworkTitle}{Computational Physics Hw\_4}
+\newcommand{\StudentID}{2024141230044}
+\newcommand{\StudentName}{Fanyi}
+
+\begin{document}
+
+\begin{center}
+    {\LARGE \textbf{\HomeworkTitle}}\\[1.2em]
+    {\large Student ID: \StudentID}\\[0.5em]
+    {\large Name: \StudentName}
+\end{center}
+
+\vspace{0.5em}
+\noindent\rule{\textwidth}{0.8pt}
+\vspace{0.5em}
+
+\section*{Problem 3}
+
+This problem asks for the machine precision, numerical range, and related properties of half precision floating point (IEEE 754 binary16). It also asks for an example showing how serious roundoff error can be.
+
+\newpage
+\tableofcontents
+\newpage
+
+\section{Basic Theory of IEEE 754 Half Precision}
+
+A half precision number (binary16) has three fields:
+\begin{itemize}[leftmargin=2.5em]
+    \item 1 sign bit,
+    \item 5 exponent bits,
+    \item 10 fraction bits.
+\end{itemize}
+For normalized numbers, the leading bit is implicit, so the effective binary precision is
+\[
+    p = 11.
+\]
+The exponent bias is $15$, hence the normalized exponent range is
+\[
+    e\in[-14,15].
+\]
+
+\subsection{Machine epsilon and unit roundoff}
+For radix $\beta=2$ and precision $p=11$,
+\[
+    \varepsilon_{\mathrm{mach}} = 2^{1-p}=2^{-10}=9.765625\times10^{-4},
+\]
+while the unit roundoff is
+\[
+    u = 2^{-p}=2^{-11}=4.8828125\times10^{-4}.
+\]
+These values mean that half precision keeps only about
+\[
+    p\log_{10}2 \approx 3.31
+\]
+decimal digits.
+
+\subsection{Range}
+The smallest positive normalized number is
+\[
+    x_{\min,\mathrm{normal}} = 2^{-14}=6.103515625\times10^{-5}.
+\]
+The smallest positive subnormal number is
+\[
+    x_{\min,\mathrm{sub}} = 2^{-24}=5.9604644775390625\times10^{-8}.
+\]
+The largest finite number is
+\[
+    x_{\max} = (2-2^{-10})2^{15}=65504.
+\]
+
+\begin{table}[H]
+\centering
+\caption{Important binary16 parameters.}
+\begin{tabular}{ll}
+\toprule
+Quantity & Value \\
+\midrule
+Effective precision $p$ & 11 bits \\
+Machine epsilon $\varepsilon_{\mathrm{mach}}$ & $2^{-10}=9.765625\times10^{-4}$ \\
+Unit roundoff $u$ & $2^{-11}=4.8828125\times10^{-4}$ \\
+Minimum positive normalized number & $2^{-14}=6.103515625\times10^{-5}$ \\
+Minimum positive subnormal number & $2^{-24}=5.9604644775390625\times10^{-8}$ \\
+Maximum finite number & $(2-2^{-10})2^{15}=65504$ \\
+Approximate decimal digits & $3.31$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Program Code}
+
+The following C program prints the theoretical binary16 parameters and, when the compiler supports \texttt{\_Float16}, also demonstrates a roundoff example directly.
+
+\begin{lstlisting}[language=C]
+#include <stdio.h>
+#include <math.h>
+#include <float.h>
+
+int main(void) {
+    const int p = 11;
+    const int emin = -14;
+    const int emax = 15;
+
+    double eps = ldexp(1.0, 1 - p);
+    double u   = ldexp(1.0, -p);
+    double xmin_normal = ldexp(1.0, emin);
+    double xmin_sub    = ldexp(1.0, emin - (p - 1));
+    double xmax = (2.0 - ldexp(1.0, 1 - p)) * ldexp(1.0, emax);
+
+    printf("IEEE 754 half precision (binary16)\n");
+    printf("effective precision p      = %d bits\n", p);
+    printf("machine epsilon eps        = %.17g\n", eps);
+    printf("unit roundoff u            = %.17g\n", u);
+    printf("min positive normal        = %.17g\n", xmin_normal);
+    printf("min positive subnormal     = %.17g\n", xmin_sub);
+    printf("max finite number          = %.17g\n", xmax);
+}
+\end{lstlisting}
+
+When executed in the current environment, the program outputs:
+\begin{verbatim}
+IEEE 754 half precision (binary16)
+---------------------------------
+effective precision p      = 11 bits
+machine epsilon eps        = 2^(1-p) = 0.0009765625
+unit roundoff u            = 2^(-p)  = 0.00048828125
+min positive normal        = 6.103515625e-05
+min positive subnormal     = 5.9604644775390625e-08
+max finite number          = 65504
+approx decimal digits      = 3.3113
+\end{verbatim}
+
+\section{A Roundoff Example}
+
+A simple and instructive example is
+\[
+    (10000+1)-10000.
+\]
+In exact arithmetic, the answer is $1$. However, in half precision this result is rounded to $0$.
+
+\subsection{Why does this happen?}
+Near the magnitude $10000$, the exponent is $13$ because
+\[
+    2^{13}=8192 < 10000 < 16384 = 2^{14}.
+\]
+For binary16, the spacing between adjacent representable numbers in this range is
+\[
+    2^{13-(p-1)} = 2^{13-10} = 8.
+\]
+So the number $10001$ cannot be represented distinctly from $10000$; it is rounded back to the same floating-point number. Therefore
+\[
+    \mathrm{fl}(10000+1)=10000,
+\]
+and then
+\[
+    \mathrm{fl}(\mathrm{fl}(10000+1)-10000)=0.
+\]
+This is a strong example of how a small quantity can be completely lost when added to a much larger number in low precision.
+
+\subsection{Another interpretation near 1}
+Because
+\[
+    \varepsilon_{\mathrm{mach}} = 2^{-10},
+\]
+we have
+\[
+    1+\frac{\varepsilon_{\mathrm{mach}}}{2}
+\]
+rounding back to $1$ in many half-precision computations, while
+\[
+    1+\varepsilon_{\mathrm{mach}}
+\]
+becomes the next representable number. This shows that even around $1$, binary16 can only resolve changes of about $10^{-3}$.
+
+\section{Discussion}
+
+Compared with single and double precision, half precision has a very small mantissa and a narrow exponent range. Its main advantage is speed and memory efficiency, but the cost is severe roundoff and overflow/underflow risk.
+
+The example above shows that roundoff is not just a tiny perturbation. In half precision, it can completely erase meaningful information. Therefore, half precision must be used carefully, especially in subtraction, summation, and any computation involving very different scales.
+
+\section{Conclusion}
+
+For IEEE 754 half precision (binary16), the machine epsilon is $2^{-10}$, the unit roundoff is $2^{-11}$, the minimum positive normalized value is $2^{-14}$, the minimum positive subnormal value is $2^{-24}$, and the maximum finite value is $65504$.
+
+The example
+\[
+    (10000+1)-10000=0
+\]
+in half precision demonstrates that roundoff error can be extremely serious: a mathematically nonzero quantity can disappear entirely. This confirms the limited accuracy of binary16 and explains why higher precision is often necessary in scientific computing.
+
+\end{document}

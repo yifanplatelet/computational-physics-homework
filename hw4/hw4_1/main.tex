@@ -1,0 +1,345 @@
+\documentclass[12pt,a4paper]{article}
+
+% -------------------------------------------------
+% Basic packages
+% -------------------------------------------------
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{fontspec}
+\usepackage{ctex}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{caption}
+\usepackage{float}
+\usepackage{setspace}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{listings}
+\renewcommand{\tablename}{Table}
+
+% -------------------------------------------------
+% Table of contents setup
+% -------------------------------------------------
+\setcounter{tocdepth}{2}
+
+% -------------------------------------------------
+% Font setup
+% -------------------------------------------------
+\setmainfont{Noto Serif}
+\setmonofont{DejaVu Sans Mono}
+
+% -------------------------------------------------
+% Line spacing and paragraph formatting
+% -------------------------------------------------
+\onehalfspacing
+\setlength{\parindent}{2em}
+\setlength{\parskip}{0.4em}
+
+% -------------------------------------------------
+% Header / footer
+% -------------------------------------------------
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0pt}
+
+% -------------------------------------------------
+% Hyperref setup
+% -------------------------------------------------
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    urlcolor=blue,
+    citecolor=blue
+}
+
+% -------------------------------------------------
+% Code listing setup
+% -------------------------------------------------
+\lstset{
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    columns=fullflexible,
+    showstringspaces=false
+}
+
+% -------------------------------------------------
+% User-defined information
+% -------------------------------------------------
+\newcommand{\HomeworkTitle}{Computational Physics Hw\_4}
+\newcommand{\StudentID}{2024141230044}
+\newcommand{\StudentName}{Fanyi}
+
+\begin{document}
+
+% =================================================
+% Title block
+% =================================================
+\begin{center}
+    {\LARGE \textbf{\HomeworkTitle}}\\[1.2em]
+    {\large Student ID: \StudentID}\\[0.5em]
+    {\large Name: \StudentName}
+\end{center}
+
+\vspace{0.5em}
+\noindent\rule{\textwidth}{0.8pt}
+\vspace{0.5em}
+
+\section*{Problem 1}
+
+For the quadratic equation
+\[
+ x^2-bx+1=0,
+\]
+compute the smaller root for several large values of $b$ and compare the numerical behavior of the following two formulas:
+\[
+ x_2 = \frac{b-\sqrt{b^2-4}}{2},
+ \qquad
+ x_2 = \frac{2}{b+\sqrt{b^2-4}}.
+\]
+Use $b=100$ first, then test other large values such as $1000$, $10000$, $100000$, and beyond. Tabulate the relative errors and explain why the rationalized formula is numerically more stable.
+
+\newpage
+\tableofcontents
+\newpage
+
+% =================================================
+% Part 1
+% =================================================
+\section{Algorithm Principle}
+
+\subsection*{Standard quadratic formula}
+
+For
+\[
+ x^2-bx+1=0,
+\]
+the discriminant is
+\[
+ r = \sqrt{b^2-4}.
+\]
+Therefore the two roots are
+\[
+ x_1=\frac{b+r}{2},
+ \qquad
+ x_2=\frac{b-r}{2}.
+\]
+The larger root $x_1$ is numerically stable, because it is formed by adding two positive numbers. However, the smaller root $x_2$ is unstable for large $b$, because $b-r$ becomes very small after cancellation.
+
+\subsection*{Rationalized formula}
+
+Starting from the standard expression,
+\[
+ x_2=\frac{b-r}{2},
+\]
+we multiply numerator and denominator by $b+r$:
+\[
+ x_2 = \frac{b-r}{2}\cdot\frac{b+r}{b+r}
+ = \frac{b^2-r^2}{2(b+r)}
+ = \frac{b^2-(b^2-4)}{2(b+r)}
+ = \frac{2}{b+r}.
+\]
+This formula replaces a subtraction by an addition, so it is much less sensitive to rounding error.
+
+\subsection*{Reference solution and relative error}
+
+Because the product of the two roots satisfies
+\[
+ x_1x_2=1,
+\]
+a numerically stable reference value for the smaller root can be obtained from
+\[
+ x_2=\frac{1}{x_1},
+ \qquad
+ x_1=\frac{b+r}{2}.
+\]
+In the program, this reference value is computed in \texttt{long double} precision. The relative error is then defined by
+\[
+ \text{relative error} = \left|\frac{x_{\text{approx}}-x_{\text{ref}}}{x_{\text{ref}}}\right|.
+\]
+
+\section{Program Code}
+
+\begin{lstlisting}[language=C]
+#include <stdio.h>
+#include <math.h>
+
+static long double rel_err(long double approx, long double exact) {
+    return fabsl((approx - exact) / exact);
+}
+
+static long double x2_ref(long double b) {
+    long double r = sqrtl(b * b - 4.0L);
+    long double x1 = (b + r) / 2.0L;
+    return 1.0L / x1;
+}
+
+static double x2_std_double(double b) {
+    double r = sqrt(b * b - 4.0);
+    return (b - r) / 2.0;
+}
+
+static double x2_rat_double(double b) {
+    double r = sqrt(b * b - 4.0);
+    return 2.0 / (b + r);
+}
+
+static float x2_std_float(float b) {
+    float r = sqrtf(b * b - 4.0f);
+    return (b - r) / 2.0f;
+}
+
+static float x2_rat_float(float b) {
+    float r = sqrtf(b * b - 4.0f);
+    return 2.0f / (b + r);
+}
+
+int main(void) {
+    long double bs[] = {
+        100.0L, 1000.0L, 10000.0L, 100000.0L,
+        1000000.0L, 10000000.0L, 100000000.0L
+    };
+    int n = (int)(sizeof(bs) / sizeof(bs[0]));
+
+    printf("===== double experiment =====\n");
+    printf("%12s %20s %20s %14s %14s\n",
+           "b", "x2_standard", "x2_rational", "relerr_std", "relerr_rat");
+
+    for (int i = 0; i < n; ++i) {
+        long double b = bs[i];
+        long double ref = x2_ref(b);
+
+        double xs = x2_std_double((double)b);
+        double xr = x2_rat_double((double)b);
+
+        printf("%12.0Lf %20.12e %20.12e %14.6Le %14.6Le\n",
+               b, xs, xr,
+               rel_err((long double)xs, ref),
+               rel_err((long double)xr, ref));
+    }
+
+    printf("\n");
+    printf("===== float experiment =====\n");
+    printf("%12s %20s %20s %14s %14s\n",
+           "b", "x2_standard", "x2_rational", "relerr_std", "relerr_rat");
+
+    for (int i = 0; i < n; ++i) {
+        long double b = bs[i];
+        long double ref = x2_ref(b);
+
+        float xs = x2_std_float((float)b);
+        float xr = x2_rat_float((float)b);
+
+        printf("%12.0Lf %20.12e %20.12e %14.6Le %14.6Le\n",
+               b, xs, xr,
+               rel_err((long double)xs, ref),
+               rel_err((long double)xr, ref));
+    }
+
+    return 0;
+}
+\end{lstlisting}
+
+\section{Running Results}
+
+According to the actual program output, the results are listed below.
+
+\subsection*{Double precision experiment}
+
+\begin{table}[H]
+\centering
+\caption{Comparison of the standard and rationalized formulas in \texttt{double} precision}
+\scriptsize
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{ccccc}
+\toprule
+$b$ & $x_{2,\mathrm{standard}}$ & $x_{2,\mathrm{rational}}$ & Relative error (standard) & Relative error (rational) \\
+\midrule
+100       & $1.000100020005\times10^{-2}$ & $1.000100020005\times10^{-2}$ & $1.220906\times10^{-13}$ & $2.176657\times10^{-17}$ \\
+1000      & $1.000001000023\times10^{-3}$ & $1.000001000002\times10^{-3}$ & $2.062113\times10^{-11}$ & $5.929225\times10^{-17}$ \\
+10000     & $1.000000011118\times10^{-4}$ & $1.000000010000\times10^{-4}$ & $1.117663\times10^{-9}$  & $5.651298\times10^{-17}$ \\
+100000    & $1.000000338536\times10^{-5}$ & $1.000000000100\times10^{-5}$ & $3.384358\times10^{-7}$  & $1.139028\times10^{-16}$ \\
+1000000   & $1.000007614493\times10^{-6}$ & $1.000000000001\times10^{-6}$ & $7.614492\times10^{-6}$  & $8.892192\times10^{-17}$ \\
+10000000  & $9.965151548386\times10^{-8}$ & $1.000000000000\times10^{-7}$ & $3.484845\times10^{-3}$  & $1.324781\times10^{-17}$ \\
+100000000 & $7.450580596924\times10^{-9}$ & $1.000000000000\times10^{-8}$ & $2.549419\times10^{-1}$  & $7.908299\times10^{-17}$ \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\subsection*{Single precision experiment}
+
+\begin{table}[H]
+\centering
+\caption{Comparison of the standard and rationalized formulas in \texttt{float} precision}
+\scriptsize
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{ccccc}
+\toprule
+$b$ & $x_{2,\mathrm{standard}}$ & $x_{2,\mathrm{rational}}$ & Relative error (standard) & Relative error (rational) \\
+\midrule
+100       & $1.000213623047\times10^{-2}$ & $1.000100001693\times10^{-2}$ & $1.135917\times10^{-4}$ & $1.831040\times10^{-8}$ \\
+1000      & $1.007080078125\times10^{-3}$ & $1.000000978820\times10^{-3}$ & $7.079071\times10^{-3}$ & $2.118195\times10^{-8}$ \\
+10000     & $0.000000000000\times10^{0}$  & $9.999999747379\times10^{-5}$ & $1.000000\times10^{0}$  & $3.526212\times10^{-8}$ \\
+100000    & $0.000000000000\times10^{0}$  & $9.999999747379\times10^{-6}$ & $1.000000\times10^{0}$  & $2.536212\times10^{-8}$ \\
+1000000   & $0.000000000000\times10^{0}$  & $9.999999974752\times10^{-7}$ & $1.000000\times10^{0}$  & $2.525757\times10^{-9}$ \\
+10000000  & $0.000000000000\times10^{0}$  & $1.000000011686\times10^{-7}$ & $1.000000\times10^{0}$  & $1.168609\times10^{-8}$ \\
+100000000 & $0.000000000000\times10^{0}$  & $9.999999939225\times10^{-9}$ & $1.000000\times10^{0}$  & $6.077471\times10^{-9}$ \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\section{Result Analysis}
+
+\subsection*{Comparison with the reference value}
+
+The \texttt{double} results show a clear trend: the standard formula works reasonably well for moderate values such as $b=100$ and $b=1000$, but its relative error grows rapidly as $b$ becomes larger. By the time $b=10^8$, the relative error of the standard formula has reached approximately $2.55\times10^{-1}$, which means that about one quarter of the correct value has been lost.
+
+In contrast, the rationalized formula remains highly accurate throughout the entire experiment. Its relative error stays close to machine precision in \texttt{double}, around $10^{-17}$ to $10^{-16}$.
+
+The \texttt{float} experiment makes the same phenomenon even more obvious. The standard formula already shows noticeable error at $b=100$ and $b=1000$, and from $b=10000$ onward it collapses to zero. On the other hand, the rationalized formula still produces accurate values with relative errors around $10^{-8}$ to $10^{-9}$.
+
+\subsection*{Analysis of the error source}
+
+The instability comes from the subtraction
+\[
+ b-\sqrt{b^2-4}.
+\]
+For large $b$,
+\[
+ \sqrt{b^2-4}\approx b-\frac{2}{b},
+\]
+so the difference satisfies
+\[
+ b-\sqrt{b^2-4}\approx \frac{2}{b}.
+\]
+Mathematically, the final result is a small number. Numerically, however, it is obtained by subtracting two nearly equal large numbers. Most leading digits cancel, and the remaining digits are heavily contaminated by rounding. This is exactly the mechanism of catastrophic cancellation.
+
+The situation is more severe in \texttt{float}, because only about seven decimal digits are available. Once both $b$ and $\sqrt{b^2-4}$ round to the same floating-point number, their difference becomes exactly zero, so the computed smaller root also becomes zero. That is why the standard \texttt{float} result fails completely for $b\ge 10000$ in this experiment.
+
+\subsection*{Why the rationalized formula works better}
+
+The rationalized expression
+\[
+ x_2=\frac{2}{b+\sqrt{b^2-4}}
+\]
+avoids subtracting nearly equal quantities. Its denominator is formed by addition, which is numerically stable in this case. Therefore the useful digits are preserved, and the computed value remains close to the true smaller root even when $b$ is very large.
+
+Another practical interpretation is that the large root $x_1$ is easy to compute accurately, and the small root should then be recovered from
+\[
+ x_2=\frac{1}{x_1}.
+\]
+This is equivalent to the rationalized formula and is also stable.
+
+\vfill
+\begin{center}
+    \textit{End of Report}
+\end{center}
+
+\end{document}
