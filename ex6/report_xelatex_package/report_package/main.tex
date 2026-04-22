@@ -1,0 +1,270 @@
+\documentclass[12pt,a4paper]{article}
+
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{fontspec}
+\usepackage{ctex}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{caption}
+\usepackage{float}
+\usepackage{setspace}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{listings}
+
+\setcounter{tocdepth}{2}
+\setmainfont{TeX Gyre Termes}
+\setmonofont{DejaVu Sans Mono}
+
+\onehalfspacing
+\setlength{\parindent}{2em}
+\setlength{\parskip}{0.4em}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0pt}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    urlcolor=blue,
+    citecolor=blue
+}
+
+\lstset{
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    columns=fullflexible,
+    showstringspaces=false,
+    keywordstyle=\color{blue},
+    commentstyle=\color{teal},
+    stringstyle=\color{red!70!black}
+}
+
+\newcommand{\HomeworkTitle}{Computational Physics Exercise 6}
+\newcommand{\StudentID}{2024141230044}
+\newcommand{\StudentName}{范奕}
+
+\begin{document}
+
+\begin{center}
+    {\LARGE \textbf{\HomeworkTitle}}\\[1.2em]
+    {\large Student ID: \StudentID}\\[0.5em]
+    {\large Name: \StudentName}
+\end{center}
+
+\vspace{1em}
+\noindent\rule{\textwidth}{0.8pt}
+\vspace{1.5em}
+
+\section*{Problem 1}
+
+The original classroom problem was to use a high-order interpolation polynomial to observe the hazard of extrapolation. In class, the teacher first showed an example based on the first eight points of the USA population data. A seventh-order polynomial was constructed from 1920 to 1990 and then used to extrapolate later years. The result already suggested that although interpolation may pass through all known points exactly, extrapolation outside the data interval can become very unreliable.
+
+After that, the teacher asked us to extend this idea and do a more detailed experiment on the birth-population data of a certain country from 2010 to 2025. The goal is to predict the value in 2026 using different interpolation windows. More specifically, for each interval
+\[
+2010\text{--}2025,\ 2011\text{--}2025,\ 2012\text{--}2025,\ \ldots,\ 2024\text{--}2025,
+\]
+I use all available points in that interval to construct an \(N\)-point Newton interpolation polynomial, and then evaluate it at 2026. In addition, in order to have a smoother reference, I also use a quadratic least-squares fitting curve to predict the 2026 value.
+
+The dataset used in this report is
+\[
+\begin{array}{c|cccccccc}
+\text{Year} & 2010 & 2011 & 2012 & 2013 & 2014 & 2015 & 2016 & 2017 \\
+\hline
+\text{Value} & 1588 & 1600 & 1635 & 1640 & 1687 & 1655 & 1786 & 1723
+\end{array}
+\]
+\[
+\begin{array}{c|cccccccc}
+\text{Year} & 2018 & 2019 & 2020 & 2021 & 2022 & 2023 & 2024 & 2025 \\
+\hline
+\text{Value} & 1523 & 1465 & 1200 & 1062 & 956 & 902 & 954 & 792
+\end{array}
+\]
+
+The purpose of this experiment is not simply to find one ``best'' answer, but to compare different prediction schemes and observe how sensitive high-order interpolation becomes when the data have obvious fluctuations and turning points.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{problem_original.png}
+    \caption{Original classroom slide illustrating extrapolation hazards.}
+\end{figure}
+
+\newpage
+\tableofcontents
+\newpage
+
+\section{Part 1. Source Code}
+
+In this part, I implemented the numerical experiment in C. The program contains the following main steps:
+\begin{enumerate}[label=(\arabic*)]
+    \item construct Newton interpolation polynomials for each interval from 2010--2025 to 2024--2025;
+    \item extrapolate the corresponding value at 2026;
+    \item construct a quadratic least-squares fitting curve as a smoother comparison method;
+    \item generate data files and plots by \texttt{gnuplot};
+    \item output two types of figures: one for the interpolation/fitting curves and one for the comparison of predictions under different schemes.
+\end{enumerate}
+
+The final code used in this report is attached below.
+
+\lstinputlisting[language=C]{interp_plot.c}
+
+\section{Part 2. Theoretical Analysis}
+
+Suppose that for a given interval we have points
+\[
+x_0,x_1,\ldots,x_{n-1}
+\]
+and the corresponding values
+\[
+y_0,y_1,\ldots,y_{n-1}.
+\]
+In this report, I use Newton interpolation to construct the polynomial
+\[
+P_{n-1}(x),
+\]
+which satisfies
+\[
+P_{n-1}(x_i)=y_i,\qquad i=0,1,\ldots,n-1.
+\]
+
+The Newton form can be written as
+\[
+P_{n-1}(x)=a_0+a_1(x-x_0)+a_2(x-x_0)(x-x_1)+\cdots+a_{n-1}\prod_{k=0}^{n-2}(x-x_k),
+\]
+where the coefficients \(a_0,a_1,\ldots,a_{n-1}\) are obtained from divided differences.
+
+For numerical convenience, I do not directly use the absolute years in each interpolation window. Instead, I use relative coordinates. For example, in the interval \(2010\text{--}2025\), I let
+\[
+2010\to 0,\ 2011\to 1,\ \ldots,\ 2025\to 15,
+\]
+so the predicted year 2026 corresponds to
+\[
+x=16.
+\]
+Similarly, in the interval \(2020\text{--}2025\), I let
+\[
+2020\to 0,\ 2021\to 1,\ \ldots,\ 2025\to 5,
+\]
+and then evaluate the polynomial at
+\[
+x=6.
+\]
+This treatment reduces numerical instability compared with using absolute year values directly.
+
+However, interpolation and extrapolation are very different. Interpolation ensures that the curve passes through all known points exactly, but extrapolation outside the known interval is often unstable, especially when:
+\begin{enumerate}[label=(\arabic*)]
+    \item the polynomial degree is high;
+    \item the data contain local fluctuations and turning points;
+    \item the predicted point lies outside the interpolation interval.
+\end{enumerate}
+
+This is exactly the main phenomenon that the teacher intended us to observe.
+
+Besides interpolation, I also use a quadratic least-squares fitting curve
+\[
+f(x)=ax^2+bx+c,
+\]
+which does not pass through every point exactly, but usually reflects the overall trend more smoothly. Therefore, it serves as a comparison method for the interpolation-based predictions.
+
+\section{Part 3. Numerical Results}
+
+After running the program, I obtained the following predicted values for 2026:
+
+\begin{center}
+\begin{tabular}{cccc}
+\toprule
+Range & Number of points & Method & Predicted value for 2026 \\
+\midrule
+2010--2025 & 16 & Interpolation & 1164942 \\
+2011--2025 & 15 & Interpolation & 728158 \\
+2012--2025 & 14 & Interpolation & 404369 \\
+2013--2025 & 13 & Interpolation & 201697 \\
+2014--2025 & 12 & Interpolation & 89816 \\
+2015--2025 & 11 & Interpolation & 34765 \\
+2016--2025 & 10 & Interpolation & 10803 \\
+2017--2025 & 9  & Interpolation & 1864 \\
+2018--2025 & 8  & Interpolation & -715 \\
+2019--2025 & 7  & Interpolation & -1013 \\
+2020--2025 & 6  & Interpolation & -686 \\
+2021--2025 & 5  & Interpolation & -278 \\
+2022--2025 & 4  & Interpolation & 96 \\
+2023--2025 & 3  & Interpolation & 416 \\
+2024--2025 & 2  & Interpolation & 630 \\
+\midrule
+2010--2025 & 16 & Quadratic fitting & 495.79 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+From the table, several features can be seen immediately:
+\begin{enumerate}[label=(\arabic*)]
+    \item When the interpolation interval starts very early, the predicted values are extremely large. For example, the result from 2010--2025 is \(1164942\), which is completely outside the scale of the original data.
+    \item Some intervals give negative predictions, such as \(-715\), \(-1013\), \(-686\), and \(-278\). For birth-population data, such results are obviously unreasonable in practice.
+    \item When only the latest few years are used, such as 2022--2025, 2023--2025, and 2024--2025, the predicted values become moderate again.
+    \item The quadratic fitting result, about \(495.79\), lies in the same rough range as the milder recent-window interpolation results.
+\end{enumerate}
+
+The generated figures also show this behavior very clearly.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.92\textwidth]{interpolation_extrapolation.png}
+    \caption{Interpolation curves, actual data points, and predicted points for 2026.}
+\end{figure}
+
+Figure 2 compares all interpolation curves with the quadratic fitting curve. It shows that high-order interpolation curves can oscillate strongly near the right end of the interval, and the predicted points at 2026 vary dramatically from one scheme to another. In contrast, the quadratic fitting curve is much smoother and produces a more moderate prediction.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.92\textwidth]{scheme_comparison_main.png}
+    \caption{Comparison of all prediction schemes using a signed logarithmic scale.}
+\end{figure}
+
+Figure 3 uses a signed logarithmic scale to display all schemes together. In this figure, both very large positive values and negative values can be shown in one coordinate system. This makes it much easier to see how strongly the early-window interpolation results deviate from the rest.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.78\textwidth]{scheme_comparison_zoom.png}
+    \caption{Zoomed comparison of the predictions from 2017--2024 and quadratic fitting.}
+\end{figure}
+
+Figure 4 focuses on the schemes from 2017--2024 and the quadratic fitting result. After removing the visually overwhelming effect of the extremely large values, the differences between the more moderate prediction schemes can be observed more clearly.
+
+\section{Part 4. Discussion}
+
+From this experiment, I think the most important conclusion is that interpolation and extrapolation are fundamentally different problems.
+
+Inside the interpolation interval, Newton interpolation works well in the sense that it passes through all known points exactly. However, once I use the polynomial to predict the value at 2026, the result becomes highly sensitive to the choice of interpolation window. When the interval is long, the polynomial degree is high, so the extrapolation becomes extremely unstable. This is why the schemes from 2010--2025 to 2016--2025 give unrealistically huge positive values.
+
+Another striking phenomenon is that some interpolation schemes give negative predictions. Mathematically, this is not an error in the code; instead, it is a typical consequence of polynomial oscillation outside the interpolation interval. But physically, birth population cannot be negative, so these results have no practical meaning. This shows that a mathematically valid extrapolation formula does not necessarily give a practically meaningful forecast.
+
+I also noticed that the original data are not monotonic. From 2010 to around 2016, the values remain relatively high, while after that they decrease significantly. There is even a small rebound in 2024 before the value drops again in 2025. Because of this turning behavior, a high-degree polynomial tries to pass through every local fluctuation, which makes the extrapolation near the endpoint even more unstable. In my opinion, this is the direct reason why the predicted values differ so much among different windows.
+
+Compared with interpolation, the quadratic least-squares fitting method does not force the curve to pass through every point exactly. As a result, it loses some local detail, but gains stability. The fitted result \(495.79\) is not necessarily the true future value, but it is much easier to accept as a trend-based reference than values such as \(1164942\) or \(-1013\). Therefore, for real data with visible fluctuations, fitting is usually more suitable than direct high-order interpolation if the goal is forecasting rather than exact reproduction of the known data.
+
+From a student's point of view, I think this experiment is very instructive. At first, it may seem natural that using more data points should give a better prediction. But this experiment shows that this intuition is not always correct. In fact, using too many points in a single high-order polynomial may make the future prediction much worse. So the key lesson is not simply ``use more data,'' but rather ``choose a reasonable model.''
+
+\section{Part 5. Conclusion}
+
+In this exercise, I extended the original classroom example of polynomial extrapolation to the birth-population data from 2010 to 2025, and predicted the value in 2026 using multiple interpolation schemes. For each interval from 2010--2025 to 2024--2025, I constructed a Newton interpolation polynomial and compared the resulting extrapolated values. I also introduced a quadratic least-squares fitting curve as a smoother reference.
+
+The numerical results show that high-order interpolation extrapolation is extremely unstable. Some schemes give unrealistically huge positive values, while some others even produce negative values. This clearly demonstrates the hazard of extrapolation. In contrast, the quadratic fitting result is much more moderate and visually more consistent with the recent trend of the data.
+
+Therefore, my main conclusions are:
+\begin{enumerate}[label=(\arabic*)]
+    \item high-order interpolation can reproduce known data exactly, but its extrapolation may be very unreliable;
+    \item the prediction is highly sensitive to the choice of interpolation window;
+    \item for fluctuating real-world data, fitting methods are usually more stable than direct high-order interpolation when predicting future values;
+    \item this experiment successfully illustrates the main idea emphasized in class: extrapolation should be treated with great caution.
+\end{enumerate}
+
+\end{document}
