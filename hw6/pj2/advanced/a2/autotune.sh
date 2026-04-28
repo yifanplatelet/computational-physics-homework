@@ -8,21 +8,38 @@ export OMP_PLACES=${OMP_PLACES:-cores}
 best=""
 best_time=""
 
-for depth in 8 10 12; do
-  for leaf in 128 192 256; do
-    for tmin in 2048 4096 8192; do
-      for mdepth in 1 2 3; do
-        for mmin in 32768 65536 131072; do
-          cmd=(./pi_bs_optimized_yc_learned "$DIGITS" "$depth" "$leaf" "$tmin" "$mdepth" "$mmin")
-          echo "RUN: ${cmd[*]}"
-          out="$(${cmd[@]})"
-          time=$(printf '%s
-' "$out" | awk -F= '/^total_time=/{print $2}')
-          echo "TIME: $time"
-          if [[ -z "$best_time" ]] || awk "BEGIN{exit !($time < $best_time)}"; then
-            best_time="$time"
-            best="${cmd[*]}"
-          fi
+run_case() {
+  local -a cmd=("$@")
+  local out time
+  echo "RUN: ${cmd[*]}"
+  out="$(${cmd[@]})"
+  time=$(printf '%s\n' "$out" | awk -F= '/^total_time=/{print $2}')
+  echo "TIME: $time"
+  if [[ -z "$best_time" ]] || awk "BEGIN{exit !($time < $best_time)}"; then
+    best_time="$time"
+    best="${cmd[*]}"
+  fi
+}
+
+for depth in 6 7 8; do
+  for leaf in 192 256 320; do
+    for tmin in 4096 8192 16384; do
+      for mdepth in 0 1 2; do
+        for mmin in 65536 131072; do
+          run_case ./pi_bs_fixedpoint_yc_adaptive "$DIGITS" "$depth" "$leaf" "$tmin" "$mdepth" "$mmin" 32 0 0 1 0 0
+        done
+      done
+    done
+  done
+done
+
+for depth in 6 7; do
+  for leaf in 256 320; do
+    for tmin in 4096 8192; do
+      for mdepth in 0 1; do
+        for mmin in 65536 131072; do
+          run_case ./pi_bs_fixedpoint_yc_adaptive "$DIGITS" "$depth" "$leaf" "$tmin" "$mdepth" "$mmin" 32 0 2 3 1 131072
+          run_case ./pi_bs_fixedpoint_yc_adaptive "$DIGITS" "$depth" "$leaf" "$tmin" "$mdepth" "$mmin" 32 0 2 3 2 131072
         done
       done
     done

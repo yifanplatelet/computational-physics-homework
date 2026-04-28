@@ -1,0 +1,451 @@
+\documentclass[12pt,a4paper]{ctexart}
+\usepackage[margin=2.2cm]{geometry}
+\usepackage{amsmath,amssymb,booktabs,array,longtable,enumitem}
+\usepackage{mathtools}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{hyperref}
+\setCJKmainfont{Noto Serif CJK SC}
+\setCJKsansfont{Noto Sans CJK SC}
+\setmonofont{Noto Sans Mono CJK SC}
+\hypersetup{colorlinks=false,pdfborder={0 0 0}}
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{有限差分推导整理}
+\rhead{Problem 1}
+\cfoot{\thepage}
+\setlength{\parindent}{2em}
+\setlength{\parskip}{0.35em}
+\setlength{\headheight}{15pt}
+\titleformat{\section}{\Large\bfseries}{\thesection}{0.8em}{}
+\titleformat{\subsection}{\large\bfseries}{\thesubsection}{0.6em}{}
+\newcommand{\dd}{\mathrm{d}}
+\newcommand{\D}{\Delta}
+\newcommand{\N}{\nabla}
+\newcommand{\E}{E}
+\newcommand{\half}{\frac12}
+\newcommand{\fh}[1]{f(x+#1h)}
+\newcommand{\fmh}[1]{f(x-#1h)}
+\newcommand{\fx}{f(x)}
+\newcommand{\fp}{f'}
+\newcommand{\fpp}{f''}
+\newcommand{\fiii}{f^{(3)}}
+\newcommand{\fiv}{f^{(4)}}
+\newcommand{\fv}{f^{(5)}}
+\newcommand{\fvi}{f^{(6)}}
+\newcommand{\fvii}{f^{(7)}}
+\renewcommand{\arraystretch}{1.25}
+
+\title{Problem 1：有限差分公式推导整理}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section*{题目}
+推导 $y=f(x)$ 的二阶、三阶、四阶、五阶的向前差分、向后差分以及中心差分，并写成对应的导数公式。
+
+\section{记号与差分算子}
+设步长为 $h$，并记
+\[
+  x_i=x+ih,\qquad y_i=f(x_i).
+\]
+引入平移算子 $E$：
+\[
+  E f(x)=f(x+h),\qquad E^{-1}f(x)=f(x-h).
+\]
+因此
+\[
+  E^k f(x)=f(x+kh).
+\]
+
+向前差分、向后差分和中心差分分别定义为
+\[
+  \Delta=E-1,\qquad \nabla=1-E^{-1},\qquad \delta=E^{1/2}-E^{-1/2}.
+\]
+其中中心差分采用关于 $x$ 对称的点。偶数阶中心差分展开后已经是整数节点；奇数阶中心差分先得到半整数节点，再用平均算子
+\[
+  \mu=\frac{E^{1/2}+E^{-1/2}}{2}
+\]
+将其化为关于 $x$ 对称的整数节点形式。
+
+\section{差分系数表}
+\subsection{向前差分系数}
+由
+\[
+  \Delta^n=(E-1)^n
+\]
+可得：
+\[
+\begin{array}{c|rrrrrr}
+ n & E^0&E^1&E^2&E^3&E^4&E^5\\
+\hline
+1&-1&1&0&0&0&0\\
+2&1&-2&1&0&0&0\\
+3&-1&3&-3&1&0&0\\
+4&1&-4&6&-4&1&0\\
+5&-1&5&-10&10&-5&1
+\end{array}
+\]
+例如
+\[
+  \Delta^5 f(x)=f(x+5h)-5f(x+4h)+10f(x+3h)-10f(x+2h)+5f(x+h)-f(x).
+\]
+
+\subsection{向后差分系数}
+由
+\[
+  \nabla^n=(1-E^{-1})^n
+\]
+可得：
+\[
+\begin{array}{c|rrrrrr}
+ n & E^0&E^{-1}&E^{-2}&E^{-3}&E^{-4}&E^{-5}\\
+\hline
+1&1&-1&0&0&0&0\\
+2&1&-2&1&0&0&0\\
+3&1&-3&3&-1&0&0\\
+4&1&-4&6&-4&1&0\\
+5&1&-5&10&-10&5&-1
+\end{array}
+\]
+
+\subsection{中心差分系数与半整数节点的处理}
+中心差分由
+\[
+  \delta^n=(E^{1/2}-E^{-1/2})^n
+\]
+给出。先列出原始系数表：
+{\small
+\[
+\begin{array}{c|rrrrrrrrrrr}
+ n&E^{-5/2}&E^{-2}&E^{-3/2}&E^{-1}&E^{-1/2}&1&E^{1/2}&E&E^{3/2}&E^2&E^{5/2}\\
+\hline
+1&0&0&0&0&-1&0&1&0&0&0&0\\
+2&0&0&0&1&0&-2&0&1&0&0&0\\
+3&0&0&-1&0&3&0&-3&0&1&0&0\\
+4&0&1&0&-4&0&6&0&-4&0&1&0\\
+5&-1&0&5&0&-10&0&10&0&-5&0&1
+\end{array}
+\]
+}
+
+实际写成导数公式时，要把半整数节点化为整数节点：
+
+\begin{enumerate}[label=(\arabic*)]
+\item 偶数阶中心差分已经是整数节点形式：
+\[
+  \delta^2=E-2+E^{-1},
+\]
+\[
+  \delta^4=E^2-4E+6-4E^{-1}+E^{-2}.
+\]
+
+\item 奇数阶中心差分先乘平均算子 $\mu$，即
+\[
+  \mu=\frac{E^{1/2}+E^{-1/2}}{2}.
+\]
+三阶时：
+\[
+\begin{aligned}
+\mu\delta^3
+&=\frac{E^{1/2}+E^{-1/2}}{2}
+  \left(E^{3/2}-3E^{1/2}+3E^{-1/2}-E^{-3/2}\right)\\
+&=\frac12\left(E^2-2E+2E^{-1}-E^{-2}\right).
+\end{aligned}
+\]
+所以三阶中心差分写成
+\[
+  \frac{f(x+2h)-2f(x+h)+2f(x-h)-f(x-2h)}{2h^3}.
+\]
+五阶时：
+\[
+\begin{aligned}
+\mu\delta^5
+&=\frac12\left(E^3-4E^2+5E-5E^{-1}+4E^{-2}-E^{-3}\right).
+\end{aligned}
+\]
+所以五阶中心差分写成
+\[
+  \frac{f(x+3h)-4f(x+2h)+5f(x+h)-5f(x-h)+4f(x-2h)-f(x-3h)}{2h^5}.
+\]
+\end{enumerate}
+
+\section{泰勒展开}
+以下所有右端的 $f,f',f'',\ldots$ 均在 $x$ 处取值，即
+\[
+  f=f(x),\quad f'=f'(x),\quad f''=f''(x),\quad \ldots
+\]
+一般地，
+\[
+  f(x+kh)=\sum_{r=0}^{6}\frac{(kh)^r}{r!}f^{(r)}(x)+O(h^7).
+\]
+因此向前展开为
+\[
+\begin{aligned}
+f(x+h)&=f+hf'+\frac{h^2}{2}f''+\frac{h^3}{6}f^{(3)}+\frac{h^4}{24}f^{(4)}+\frac{h^5}{120}f^{(5)}+\frac{h^6}{720}f^{(6)}+O(h^7),\\
+f(x+2h)&=f+2hf'+2h^2f''+\frac43h^3f^{(3)}+\frac23h^4f^{(4)}+\frac4{15}h^5f^{(5)}+\frac4{45}h^6f^{(6)}+O(h^7),\\
+f(x+3h)&=f+3hf'+\frac92h^2f''+\frac92h^3f^{(3)}+\frac{27}{8}h^4f^{(4)}+\frac{81}{40}h^5f^{(5)}+\frac{81}{80}h^6f^{(6)}+O(h^7),\\
+f(x+4h)&=f+4hf'+8h^2f''+\frac{32}{3}h^3f^{(3)}+\frac{32}{3}h^4f^{(4)}+\frac{128}{15}h^5f^{(5)}+\frac{256}{45}h^6f^{(6)}+O(h^7),\\
+f(x+5h)&=f+5hf'+\frac{25}{2}h^2f''+\frac{125}{6}h^3f^{(3)}+\frac{625}{24}h^4f^{(4)}+\frac{625}{24}h^5f^{(5)}+\frac{3125}{144}h^6f^{(6)}+O(h^7).
+\end{aligned}
+\]
+
+向后推导时使用
+\[
+  f(x-kh)=\sum_{r=0}^{6}\frac{(-kh)^r}{r!}f^{(r)}(x)+O(h^7).
+\]
+也就是奇数阶导数项变号，偶数阶导数项不变。
+
+中心差分求最低阶误差时，二阶、四阶需要展开到六阶即可；三阶、五阶的下一项含 $f^{(5)}$ 与 $f^{(7)}$，特别是五阶中心差分为了得到最低阶误差，需要补充到七阶：
+\[
+  f(x+kh)=\sum_{r=0}^{7}\frac{(kh)^r}{r!}f^{(r)}(x)+O(h^8).
+\]
+
+\section{向前差分推导及最低阶误差}
+\subsection{二阶向前差分}
+\[
+\begin{aligned}
+\Delta^2 f(x)
+&=f(x+2h)-2f(x+h)+f(x)\\
+&=h^2f''+h^3f^{(3)}+\frac7{12}h^4f^{(4)}+O(h^5).
+\end{aligned}
+\]
+所以
+\[
+  \frac{\Delta^2 f(x)}{h^2}=f''+h f^{(3)}+O(h^2),
+\]
+即
+\[
+  \boxed{f''(x)=\frac{f(x+2h)-2f(x+h)+f(x)}{h^2}-h f^{(3)}(x)+O(h^2).}
+\]
+若只写差分近似，则
+\[
+  f''(x)\approx\frac{f(x+2h)-2f(x+h)+f(x)}{h^2},
+\]
+其最低阶误差为 $h f^{(3)}(x)$，精度为 $O(h)$。
+
+\subsection{三阶向前差分}
+\[
+\begin{aligned}
+\Delta^3 f(x)
+&=f(x+3h)-3f(x+2h)+3f(x+h)-f(x)\\
+&=h^3f^{(3)}+\frac32h^4f^{(4)}+O(h^5).
+\end{aligned}
+\]
+因此
+\[
+  \boxed{f^{(3)}(x)=\frac{f(x+3h)-3f(x+2h)+3f(x+h)-f(x)}{h^3}-\frac32h f^{(4)}(x)+O(h^2).}
+\]
+
+\subsection{四阶向前差分}
+\[
+\begin{aligned}
+\Delta^4 f(x)
+&=f(x+4h)-4f(x+3h)+6f(x+2h)-4f(x+h)+f(x)\\
+&=h^4f^{(4)}+2h^5f^{(5)}+O(h^6).
+\end{aligned}
+\]
+因此
+\[
+  \boxed{f^{(4)}(x)=\frac{f(x+4h)-4f(x+3h)+6f(x+2h)-4f(x+h)+f(x)}{h^4}-2h f^{(5)}(x)+O(h^2).}
+\]
+
+\subsection{五阶向前差分}
+\[
+\begin{aligned}
+\Delta^5 f(x)
+&=f(x+5h)-5f(x+4h)+10f(x+3h)\\
+&\quad -10f(x+2h)+5f(x+h)-f(x).
+\end{aligned}
+\]
+用上面的泰勒展开逐项合并：
+\[
+\begin{array}{c|c}
+\text{项} & \text{系数和}\\
+\hline
+f & 1-5+10-10+5-1=0\\
+hf' & 5-5\cdot4+10\cdot3-10\cdot2+5=0\\
+h^2f'' & \frac{25}{2}-5\cdot8+10\cdot\frac92-10\cdot2+5\cdot\frac12=0\\
+h^3f^{(3)} & \frac{125}{6}-5\cdot\frac{32}{3}+10\cdot\frac92-10\cdot\frac43+5\cdot\frac16=0\\
+h^4f^{(4)} & \frac{625}{24}-5\cdot\frac{32}{3}+10\cdot\frac{27}{8}-10\cdot\frac23+5\cdot\frac1{24}=0\\
+h^5f^{(5)} & \frac{625}{24}-5\cdot\frac{128}{15}+10\cdot\frac{81}{40}-10\cdot\frac4{15}+5\cdot\frac1{120}=1\\
+h^6f^{(6)} & \frac{3125}{144}-5\cdot\frac{256}{45}+10\cdot\frac{81}{80}-10\cdot\frac4{45}+5\cdot\frac1{720}=\frac52
+\end{array}
+\]
+所以
+\[
+\begin{aligned}
+\Delta^5 f(x)
+&=h^5f^{(5)}+\frac52h^6f^{(6)}+O(h^7).
+\end{aligned}
+\]
+因此
+\[
+  \boxed{f^{(5)}(x)=\frac{\Delta^5 f(x)}{h^5}-\frac52h f^{(6)}(x)+O(h^2).}
+\]
+
+\section{向后差分推导及最低阶误差}
+向后差分的推导与向前差分类似，只是泰勒展开中奇数次幂项符号相反。
+
+\subsection{二阶向后差分}
+\[
+\begin{aligned}
+\nabla^2 f(x)
+&=f(x)-2f(x-h)+f(x-2h)\\
+&=h^2f''-h^3f^{(3)}+\frac7{12}h^4f^{(4)}+O(h^5).
+\end{aligned}
+\]
+所以
+\[
+  \boxed{f''(x)=\frac{f(x)-2f(x-h)+f(x-2h)}{h^2}+h f^{(3)}(x)+O(h^2).}
+\]
+
+\subsection{三阶向后差分}
+\[
+\begin{aligned}
+\nabla^3 f(x)
+&=f(x)-3f(x-h)+3f(x-2h)-f(x-3h)\\
+&=h^3f^{(3)}-\frac32h^4f^{(4)}+O(h^5).
+\end{aligned}
+\]
+所以
+\[
+  \boxed{f^{(3)}(x)=\frac{f(x)-3f(x-h)+3f(x-2h)-f(x-3h)}{h^3}+\frac32h f^{(4)}(x)+O(h^2).}
+\]
+
+\subsection{四阶向后差分}
+\[
+\begin{aligned}
+\nabla^4 f(x)
+&=f(x)-4f(x-h)+6f(x-2h)-4f(x-3h)+f(x-4h)\\
+&=h^4f^{(4)}-2h^5f^{(5)}+O(h^6).
+\end{aligned}
+\]
+所以
+\[
+  \boxed{f^{(4)}(x)=\frac{f(x)-4f(x-h)+6f(x-2h)-4f(x-3h)+f(x-4h)}{h^4}+2h f^{(5)}(x)+O(h^2).}
+\]
+
+\subsection{五阶向后差分}
+\[
+\begin{aligned}
+\nabla^5 f(x)
+&=f(x)-5f(x-h)+10f(x-2h)-10f(x-3h)\\
+&\quad +5f(x-4h)-f(x-5h)\\
+&=h^5f^{(5)}-\frac52h^6f^{(6)}+O(h^7).
+\end{aligned}
+\]
+所以
+\[
+  \boxed{f^{(5)}(x)=\frac{\nabla^5 f(x)}{h^5}+\frac52h f^{(6)}(x)+O(h^2).}
+\]
+
+\section{中心差分推导及最低阶误差}
+\subsection{二阶中心差分}
+\[
+\begin{aligned}
+C_2&=f(x+h)-2f(x)+f(x-h)\\
+&=h^2f''+\frac1{12}h^4f^{(4)}+\frac1{360}h^6f^{(6)}+O(h^8).
+\end{aligned}
+\]
+故
+\[
+  \boxed{f''(x)=\frac{f(x+h)-2f(x)+f(x-h)}{h^2}-\frac{h^2}{12}f^{(4)}(x)+O(h^4).}
+\]
+
+\subsection{三阶中心差分}
+三阶中心差分用整数节点写为
+\[
+  C_3=f(x+2h)-2f(x+h)+2f(x-h)-f(x-2h).
+\]
+由泰勒展开合并得
+\[
+  C_3=2h^3f^{(3)}+\frac12h^5f^{(5)}+O(h^7).
+\]
+所以
+\[
+  \frac{C_3}{2h^3}=f^{(3)}+\frac14h^2f^{(5)}+O(h^4),
+\]
+即
+\[
+  \boxed{f^{(3)}(x)=\frac{f(x+2h)-2f(x+h)+2f(x-h)-f(x-2h)}{2h^3}-\frac{h^2}{4}f^{(5)}(x)+O(h^4).}
+\]
+
+\subsection{四阶中心差分}
+\[
+\begin{aligned}
+C_4&=f(x+2h)-4f(x+h)+6f(x)-4f(x-h)+f(x-2h)\\
+&=h^4f^{(4)}+\frac16h^6f^{(6)}+O(h^8).
+\end{aligned}
+\]
+所以
+\[
+  \boxed{f^{(4)}(x)=\frac{f(x+2h)-4f(x+h)+6f(x)-4f(x-h)+f(x-2h)}{h^4}-\frac{h^2}{6}f^{(6)}(x)+O(h^4).}
+\]
+
+\subsection{五阶中心差分}
+五阶中心差分用整数节点写为
+\[
+  C_5=f(x+3h)-4f(x+2h)+5f(x+h)-5f(x-h)+4f(x-2h)-f(x-3h).
+\]
+为得到最低阶误差，展开到七阶：
+\[
+  C_5=2h^5f^{(5)}+\frac23h^7f^{(7)}+O(h^9).
+\]
+于是
+\[
+  \frac{C_5}{2h^5}=f^{(5)}+\frac13h^2f^{(7)}+O(h^4),
+\]
+即
+\[
+\boxed{\begin{aligned}
+f^{(5)}(x)&=\frac{f(x+3h)-4f(x+2h)+5f(x+h)-5f(x-h)+4f(x-2h)-f(x-3h)}{2h^5}\\
+&\quad -\frac{h^2}{3}f^{(7)}(x)+O(h^4).
+\end{aligned}}
+\]
+
+\section{最终公式汇总}
+下面按阶数汇总，先给出主要差分商，再注明最低阶误差。
+
+\subsection*{二阶导数}
+\[
+\begin{aligned}
+f''(x)&=\frac{f(x+2h)-2f(x+h)+f(x)}{h^2}-h f^{(3)}(x)+O(h^2),\\
+f''(x)&=\frac{f(x)-2f(x-h)+f(x-2h)}{h^2}+h f^{(3)}(x)+O(h^2),\\
+f''(x)&=\frac{f(x+h)-2f(x)+f(x-h)}{h^2}-\frac{h^2}{12}f^{(4)}(x)+O(h^4).
+\end{aligned}
+\]
+
+\subsection*{三阶导数}
+\[
+\begin{aligned}
+f^{(3)}(x)&=\frac{f(x+3h)-3f(x+2h)+3f(x+h)-f(x)}{h^3}-\frac32h f^{(4)}(x)+O(h^2),\\
+f^{(3)}(x)&=\frac{f(x)-3f(x-h)+3f(x-2h)-f(x-3h)}{h^3}+\frac32h f^{(4)}(x)+O(h^2),\\
+f^{(3)}(x)&=\frac{f(x+2h)-2f(x+h)+2f(x-h)-f(x-2h)}{2h^3}-\frac{h^2}{4}f^{(5)}(x)+O(h^4).
+\end{aligned}
+\]
+
+\subsection*{四阶导数}
+\[
+\begin{aligned}
+f^{(4)}(x)&=\frac{f(x+4h)-4f(x+3h)+6f(x+2h)-4f(x+h)+f(x)}{h^4}-2h f^{(5)}(x)+O(h^2),\\
+f^{(4)}(x)&=\frac{f(x)-4f(x-h)+6f(x-2h)-4f(x-3h)+f(x-4h)}{h^4}+2h f^{(5)}(x)+O(h^2),\\
+f^{(4)}(x)&=\frac{f(x+2h)-4f(x+h)+6f(x)-4f(x-h)+f(x-2h)}{h^4}-\frac{h^2}{6}f^{(6)}(x)+O(h^4).
+\end{aligned}
+\]
+
+\subsection*{五阶导数}
+\[
+\begin{aligned}
+f^{(5)}(x)&=\frac{f(x+5h)-5f(x+4h)+10f(x+3h)-10f(x+2h)+5f(x+h)-f(x)}{h^5}\\
+&\quad -\frac52h f^{(6)}(x)+O(h^2),\\[0.4em]
+f^{(5)}(x)&=\frac{f(x)-5f(x-h)+10f(x-2h)-10f(x-3h)+5f(x-4h)-f(x-5h)}{h^5}\\
+&\quad +\frac52h f^{(6)}(x)+O(h^2),\\[0.4em]
+f^{(5)}(x)&=\frac{f(x+3h)-4f(x+2h)+5f(x+h)-5f(x-h)+4f(x-2h)-f(x-3h)}{2h^5}\\
+&\quad -\frac{h^2}{3}f^{(7)}(x)+O(h^4).
+\end{aligned}
+\]
+
+\end{document}

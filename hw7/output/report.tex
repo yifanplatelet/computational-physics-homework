@@ -1,0 +1,333 @@
+\documentclass[12pt,a4paper]{article}
+
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{fontspec}
+\usepackage{ctex}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{caption}
+\usepackage{float}
+\usepackage{setspace}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{listings}
+\usepackage{calligra}
+
+\setcounter{tocdepth}{2}
+\setmainfont{Noto Serif}
+\setmonofont{DejaVu Sans Mono}
+\onehalfspacing
+\setlength{\parindent}{2em}
+\setlength{\parskip}{0.4em}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0pt}
+\hypersetup{colorlinks=true,linkcolor=blue,urlcolor=blue,citecolor=blue}
+\lstset{basicstyle=\ttfamily\small,breaklines=true,frame=single,columns=fullflexible,showstringspaces=false}
+\renewcommand{\contentsname}{Contents}
+
+\newcommand{\HomeworkTitle}{Computational Physics Homework 7 Report}
+\newcommand{\StudentID}{2024141230044}
+\newcommand{\StudentName}{Fan Yi}
+\newcommand{\PhotoFile}{photo.jpg}
+\newcommand{\PhotoWidth}{35mm}
+\newcommand{\PhotoHeight}{49mm}
+
+\begin{document}
+
+\noindent
+\begin{minipage}[c]{0.72\textwidth}
+    \begin{center}
+        {\LARGE \textbf{\HomeworkTitle}}\\[1.2em]
+        {\large Student ID: \StudentID}\\[0.5em]
+        {\large Name: \StudentName}
+    \end{center}
+\end{minipage}%
+\hfill
+\begin{minipage}[c]{\PhotoWidth}
+    \centering
+    \IfFileExists{\PhotoFile}{%
+        \includegraphics[width=\PhotoWidth,height=\PhotoHeight,keepaspectratio]{\PhotoFile}%
+    }{%
+        \fbox{\parbox[c][\PhotoHeight][c]{\PhotoWidth}{\centering 2-inch\\ID photo}}%
+    }
+\end{minipage}
+\vspace{1em}
+\noindent\rule{\textwidth}{0.8pt}
+\vspace{1.5em}
+
+This report summarizes the four homework tasks shown on the last pages of \textit{Computational Physics Lecture 7}. The folder contains several drafts and executable files, so I first identified the versions that are most likely to be the final submissions, and then organized their mathematical results and numerical outputs into one English report.
+
+\newpage
+\tableofcontents
+\newpage
+
+\section{Selected Source Files}
+
+The working directory contains several versions of the homework. The files chosen as the most likely final drafts are listed in Table~\ref{tab:selected}. The main criterion is whether a file matches the lecture task directly and contains the complete required workflow instead of only a partial experiment.
+
+\begin{table}[H]
+\centering
+\caption{Selected final drafts used in this report.}
+\label{tab:selected}
+\begin{tabular}{>{\raggedright\arraybackslash}p{0.13\textwidth} >{\raggedright\arraybackslash}p{0.27\textwidth} >{\raggedright\arraybackslash}p{0.48\textwidth}}
+\toprule
+Task & Selected file(s) & Reason \\
+\midrule
+Problem 1 & \texttt{hw7\_1/main.tex}, \texttt{hw7\_1/main.pdf} & Clean electronic version of the handwritten derivation. The file \texttt{手写稿.pdf} is treated as the original handwritten draft rather than the final submission. \\
+Problem 2 & \texttt{hw7\_2/main.py} & Covers the full assignment: table-data approximation, error sweep for many $h$ values, and figure generation. The C file only covers the second part. \\
+Problem 3 & \texttt{hw7\_3/main.py} & Only complete implementation in the folder, including both the table-data test and the $h$-dependence study. \\
+Problem 4(a) & \texttt{hw7\_4/a/a.c} & Direct implementation of the first derivative program requested in the lecture. \\
+Problem 4(b) & \texttt{hw7\_4/b/b.c} & Direct implementation of the multi-$\delta$ accuracy test. \\
+Problem 4(c) & \texttt{hw7\_4/c/c.py} & Matches the lecture prompt most directly by reproducing the forward-difference error plot for $f(x)=\sin x$. The files \texttt{c+.py} and \texttt{c++.py} appear to be later extensions to higher-order formulas. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Theoretical Analysis}
+
+\subsection{Problem 1: finite-difference formulas}
+
+Starting from the shift operator $E f(x)=f(x+h)$, the forward, backward, and central differences are
+\[
+\Delta = E-1, \qquad \nabla = 1-E^{-1}, \qquad \delta = E^{1/2}-E^{-1/2}.
+\]
+Expanding these operators and combining them with Taylor series gives the derivative formulas below.
+
+\subsubsection{Forward differences}
+
+\[
+f''(x) \approx \frac{f(x+2h)-2f(x+h)+f(x)}{h^2},
+\qquad O(h).
+\]
+\[
+f^{(3)}(x) \approx \frac{f(x+3h)-3f(x+2h)+3f(x+h)-f(x)}{h^3},
+\qquad O(h).
+\]
+\[
+f^{(4)}(x) \approx \frac{f(x+4h)-4f(x+3h)+6f(x+2h)-4f(x+h)+f(x)}{h^4},
+\qquad O(h).
+\]
+\[
+f^{(5)}(x) \approx \frac{f(x+5h)-5f(x+4h)+10f(x+3h)-10f(x+2h)+5f(x+h)-f(x)}{h^5},
+\qquad O(h).
+\]
+
+\subsubsection{Backward differences}
+
+\[
+f''(x) \approx \frac{f(x)-2f(x-h)+f(x-2h)}{h^2},
+\qquad O(h).
+\]
+\[
+f^{(3)}(x) \approx \frac{f(x)-3f(x-h)+3f(x-2h)-f(x-3h)}{h^3},
+\qquad O(h).
+\]
+\[
+f^{(4)}(x) \approx \frac{f(x)-4f(x-h)+6f(x-2h)-4f(x-3h)+f(x-4h)}{h^4},
+\qquad O(h).
+\]
+\[
+f^{(5)}(x) \approx \frac{f(x)-5f(x-h)+10f(x-2h)-10f(x-3h)+5f(x-4h)-f(x-5h)}{h^5},
+\qquad O(h).
+\]
+
+\subsubsection{Central differences}
+
+\[
+f''(x) \approx \frac{f(x+h)-2f(x)+f(x-h)}{h^2},
+\qquad O(h^2).
+\]
+\[
+f^{(3)}(x) \approx \frac{f(x+2h)-2f(x+h)+2f(x-h)-f(x-2h)}{2h^3},
+\qquad O(h^2).
+\]
+\[
+f^{(4)}(x) \approx \frac{f(x+2h)-4f(x+h)+6f(x)-4f(x-h)+f(x-2h)}{h^4},
+\qquad O(h^2).
+\]
+\[
+f^{(5)}(x) \approx \frac{f(x+3h)-4f(x+2h)+5f(x+h)-5f(x-h)+4f(x-2h)-f(x-3h)}{2h^5},
+\qquad O(h^2).
+\]
+
+The main conclusion is that the central formulas are more accurate for the same step size because their leading truncation error is $O(h^2)$ rather than $O(h)$.
+
+\subsection{Problem 4(c): error model and optimal step size}
+
+For the forward-difference definition
+\[
+f'(x) \approx \frac{f(x+h)-f(x)}{h},
+\]
+the total error is the sum of truncation and roundoff contributions. For $f(x)=\sin x$ at $x=0.5$, the lecture gives the model
+\[
+g(h)=\left|\frac{h}{2}\sin(0.5)+\frac{\tilde{\varepsilon}}{h}\right|,
+\qquad \tilde{\varepsilon}=7\times 10^{-17}.
+\]
+Balancing the two terms gives
+\[
+\frac{1}{2}\sin(0.5)-\frac{\tilde{\varepsilon}}{h^2}=0,
+\]
+so the predicted best step is
+\[
+h_{\mathrm{best}}
+=
+\sqrt{\frac{2\tilde{\varepsilon}}{\sin(0.5)}}
+\approx 1.71\times 10^{-8}.
+\]
+This value should be close to the minimum seen in the numerical log-log plot.
+
+\section{Numerical Results}
+
+\subsection{Problem 2: approximating $f'(2)$ for $f(x)=xe^x$}
+
+The exact derivative is
+\[
+f'(x)=(x+1)e^x,
+\qquad
+f'(2)=3e^2\approx 22.1671682968.
+\]
+Using the table values with $h=0.1$, the results are shown in Table~\ref{tab:p2table}.
+
+\begin{table}[H]
+\centering
+\caption{Problem 2 results from the given table data at $h=0.1$.}
+\label{tab:p2table}
+\begin{tabular}{lcc}
+\toprule
+Method & Approximation & Absolute error \\
+\midrule
+Forward difference & 23.70845000 & 1.54128170 \\
+Backward difference & 20.74913000 & 1.41803830 \\
+Central difference & 22.22879000 & 0.06162170 \\
+Forward 3-point & 22.03231000 & 0.13485830 \\
+Backward 3-point & 22.05452500 & 0.11264330 \\
+Central 5-point & 22.16699917 & 0.00016913 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The central 5-point formula is clearly the best one for the tabulated data. When the step size is swept from $10^{-1}$ to $10^{-12}$, the smallest reported error is $3.55\times 10^{-12}$ for the central 5-point method at $h=10^{-3}$. After that, the error increases again because subtractive cancellation and floating-point roundoff begin to dominate.
+
+\subsection{Problem 3: approximating $f''(2)$ for $f(x)=xe^{x^2}$}
+
+For this function,
+\[
+f''(x)=(6x+4x^3)e^{x^2},
+\qquad
+f''(2)=44e^4\approx 2402.3186014583.
+\]
+The table-data results are listed in Table~\ref{tab:p3table}.
+
+\begin{table}[H]
+\centering
+\caption{Problem 3 results from the given table data at $h=0.1$.}
+\label{tab:p3table}
+\begin{tabular}{lcc}
+\toprule
+Method & Approximation & Absolute error \\
+\midrule
+Forward 3-point & 4189.712800 & 1787.394199 \\
+Backward 3-point & 1468.599900 & 933.718701 \\
+Central 3-point & 2460.877300 & 58.558699 \\
+Central 5-point & 2399.497458 & 2.821143 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Again the central 5-point formula performs best. In the $h$-sweep, its smallest reported error is $6.37\times 10^{-8}$ at $h=10^{-3}$. When $h$ is reduced below about $10^{-4}$, the roundoff term grows rapidly because the formula divides by $h^2$, so very small perturbations in the function values are strongly amplified.
+
+\subsection{Problem 4(a) and 4(b): forward-difference derivative of $f(x)=x(x-1)$}
+
+The analytical derivative is
+\[
+f'(x)=2x-1,
+\qquad
+f'(1)=1.
+\]
+For part (a), the forward-difference program with $\delta=10^{-2}$ gives
+\[
+f'(1)\approx 1.01,
+\]
+so the absolute error is exactly $0.01$.
+
+For part (b), the second program evaluates a sequence of $\delta$ values. The results are summarized in Table~\ref{tab:p4b}.
+
+\begin{table}[H]
+\centering
+\caption{Problem 4(b): derivative accuracy versus $\delta$.}
+\label{tab:p4b}
+\begin{tabular}{ccc}
+\toprule
+$\delta$ & Numerical derivative & Absolute error \\
+\midrule
+$10^{-2}$ & 1.0100000000000009 & $1.000000\times 10^{-2}$ \\
+$10^{-4}$ & 1.0000999999998899 & $1.000000\times 10^{-4}$ \\
+$10^{-6}$ & 1.0000009999177333 & $9.999177\times 10^{-7}$ \\
+$10^{-8}$ & 1.0000000039225287 & $3.922529\times 10^{-9}$ \\
+$10^{-10}$ & 1.0000000828403710 & $8.284037\times 10^{-8}$ \\
+$10^{-12}$ & 1.0000889005833413 & $8.890058\times 10^{-5}$ \\
+$10^{-14}$ & 0.9992007221626509 & $7.992778\times 10^{-4}$ \\
+$10^{-16}$ & 0.0000000000000000 & $1.000000\times 10^{0}$ \\
+$10^{-18}$ & 0.0000000000000000 & $1.000000\times 10^{0}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The best value in this list is $\delta=10^{-8}$. The data show the standard pattern very clearly: decreasing $\delta$ first reduces truncation error, but eventually the finite precision of the machine destroys the subtraction $f(x+\delta)-f(x)$.
+
+\subsection{Problem 4(c): reproducing the lecture error plot}
+
+The script \texttt{hw7\_4/c/c.py} reproduces the lecture plot for the forward-difference approximation of $\sin x$ at $x=0.5$. The numerical sweep uses
+\[
+h=10^{-0.1i},
+\qquad i=0,1,\dots,200.
+\]
+The script reports the best sampled value
+\[
+h_{\mathrm{best,num}}=10^{-8},
+\]
+which is consistent with the theoretical estimate
+\[
+h_{\mathrm{best,theory}}\approx 1.71\times 10^{-8}.
+\]
+The agreement is good because the sampled grid in $\log_{10}(h)$ has spacing $0.1$, so $10^{-8}$ is the nearest tested point to the theoretical optimum.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.82\textwidth]{derivative_error_plot_with_theory.png}
+\caption{Problem 4(c): numerical forward-difference error and the lecture error model for $f(x)=\sin x$ at $x=0.5$.}
+\label{fig:p4c}
+\end{figure}
+
+\section{Discussion}
+
+The four tasks illustrate the same practical lesson from different angles. Higher-order symmetric formulas usually outperform one-sided formulas when the same data are available, because their truncation error is smaller. This is why the central 5-point formulas are the best performers in both Problems 2 and 3.
+
+At the same time, the homework also shows why ``smaller step size is always better'' is false. When $h$ or $\delta$ becomes too small, the subtraction of nearly equal floating-point numbers loses significant digits, and division by $h$ or $h^2$ magnifies that loss. The result is an optimal intermediate step size rather than a monotonic improvement.
+
+The selected source files are internally consistent with this interpretation. The electronic derivation in Problem 1, the complete Python workflows in Problems 2 and 3, and the direct lecture-matching scripts in Problem 4 together form a coherent final submission set.
+
+\subsection{Conclusion}
+
+The final conclusions of Homework 7 are:
+\begin{enumerate}[label=(\arabic*)]
+    \item Central finite-difference formulas are more accurate than forward or backward formulas at the same step size when symmetric data are available.
+    \item For Problem 2 and Problem 3, the central 5-point formulas are the most accurate among the tested methods.
+    \item Reducing $h$ improves accuracy only up to a point; after that, roundoff error dominates.
+    \item In Problem 4(c), the theoretical optimum $h_{\mathrm{best}}\approx 1.71\times 10^{-8}$ agrees well with the numerical minimum near $10^{-8}$.
+\end{enumerate}
+
+\vfill
+\begin{center}
+{\fontsize{28}{32}\selectfont\calligra End of Report}
+\end{center}
+\vspace*{2em}
+
+\end{document}

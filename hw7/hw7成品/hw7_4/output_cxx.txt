@@ -1,0 +1,13 @@
+图像已保存为 multi_order_derivative_error_comparison_with_Oh6.png
+
+===== Theoretical optima =====
+O(h):   h_best = 2.980232e-08, E_min = 1.428799e-08
+O(h^2): h_best = 8.995146e-06, E_min = 3.550377e-11
+O(h^4): h_best = 1.064156e-03, E_min = 1.875675e-13
+O(h^6): h_best = 9.105395e-03, E_min = 2.500638e-14
+
+===== Numerical optima =====
+O(h):   h_best = 1.000000e-08, E_min = 2.850324e-10
+O(h^2): h_best = 1.584893e-06, E_min = 1.777467e-12
+O(h^4): h_best = 3.162278e-04, E_min = 4.440892e-16
+O(h^6): h_best = 1.000000e-02, E_min = 6.661338e-16

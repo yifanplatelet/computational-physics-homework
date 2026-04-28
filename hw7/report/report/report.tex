@@ -1,0 +1,661 @@
+\documentclass[12pt,a4paper]{article}
+
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{fontspec}
+\usepackage{ctex}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{caption}
+\usepackage{float}
+\usepackage{setspace}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{listings}
+\usepackage{calligra}
+
+\setcounter{tocdepth}{2}
+\setmainfont{Noto Serif}
+\setmonofont{DejaVu Sans Mono}
+\onehalfspacing
+\setlength{\parindent}{2em}
+\setlength{\parskip}{0.4em}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0pt}
+\hypersetup{colorlinks=true,linkcolor=blue,urlcolor=blue,citecolor=blue}
+\lstset{
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    columns=fullflexible,
+    showstringspaces=false
+}
+\renewcommand{\contentsname}{Contents}
+
+\newcommand{\HomeworkTitle}{Computational Physics Homework 7 Report}
+\newcommand{\StudentID}{2024141230044}
+\newcommand{\StudentName}{Fan Yi}
+\newcommand{\PhotoFile}{photo.jpg}
+\newcommand{\PhotoWidth}{35mm}
+\newcommand{\PhotoHeight}{49mm}
+
+\begin{document}
+
+\noindent
+\begin{minipage}[c]{0.72\textwidth}
+    \begin{center}
+        {\LARGE \textbf{\HomeworkTitle}}\\[1.2em]
+        {\large Student ID: \StudentID}\\[0.5em]
+        {\large Name: \StudentName}
+    \end{center}
+\end{minipage}%
+\hfill
+\begin{minipage}[c]{\PhotoWidth}
+    \centering
+    \IfFileExists{\PhotoFile}{%
+        \includegraphics[width=\PhotoWidth,height=\PhotoHeight,keepaspectratio]{\PhotoFile}%
+    }{%
+        \fbox{\parbox[c][\PhotoHeight][c]{\PhotoWidth}{\centering 2-inch\\ID photo}}%
+    }
+\end{minipage}
+\vspace{1em}
+\noindent\rule{\textwidth}{0.8pt}
+\vspace{1.5em}
+
+Problem1: 请推导出二阶、三阶、四阶和五阶的前向差分、后向差分和中心差分公式。
+
+Problem2: 请用前向差分、后向差分、中心差分、三点前向差分、三点后向差分和五点中心差分六种方法计算函数 $f(x)=xe^x$ 在 $x=2$ 处的导数，并与解析解比较。请扫描步长 $h$ 从 $10^{-1}$ 到 $10^{-12}$，观察误差的变化趋势。
+
+Problem3: 请用前向差分、后向差分、中心差分和五点中心差分四种方法计算函数 $f(x)=xe^{x^2}$ 在 $x=2$ 处的二阶导数，并与解析解比较。请扫描步长 $h$ 从 $10^{-1}$ 到 $10^{-12}$，观察误差的变化趋势。
+
+Problem4: (a) 请用前向差分方法计算函数 $f(x)=x(x-1)$ 在 $x=1$ 处的导数，并与解析解比较。 
+
+(b) 请扫描步长 $\delta$ 从 $10^{-2}$ 到 $10^{-18}$，观察误差的变化趋势，并找出最佳的 $\delta$。    
+
+(c) 请用前向差分、中心差分、五点中心差分和七点中心差分四种方法计算函数 $f(x)=\sin x$ 在 $x=0.5$ 处的导数，并扫描步长 $h$ 从 $10^{-1}$ 到 $10^{-12}$，观察误差的变化趋势，并找出每种方法的最佳 $h$。 请比较理论分析和数值结果。
+
+\newpage
+\tableofcontents
+\newpage
+
+\section{Problem 1: finite-difference derivation}
+
+\subsection{Original source}
+
+Problem 1 is a derivation problem rather than an executable program. The handwritten manuscript is included in \texttt{hw7\_1/手写稿.pdf}, and the cleaned electronic write-up is provided in \texttt{hw7\_1/main.tex} and \texttt{hw7\_1/main.pdf}. The electronic version rewrites the derivation using shift operators and Taylor expansions.
+
+\begin{figure}[H]
+\centering
+\begin{minipage}[t]{0.48\textwidth}
+\centering
+\includegraphics[width=\textwidth,page=1]{hw7_1/手写稿.pdf}
+\caption*{Handwritten manuscript, page 1.}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.48\textwidth}
+\centering
+\includegraphics[width=\textwidth,page=2]{hw7_1/手写稿.pdf}
+\caption*{Handwritten manuscript, page 2.}
+\end{minipage}
+\caption{Original handwritten derivation for Problem 1.}
+\label{fig:hw71hand}
+\end{figure}
+
+The electronic version can be found in the source compressed file.
+
+\subsection{Output results}
+
+The final results are the differentiation formulas for the second through fifth derivatives.
+
+\subsubsection{Forward differences}
+
+\[
+f''(x)\approx \frac{f(x+2h)-2f(x+h)+f(x)}{h^2}, \qquad O(h),
+\]
+\[
+f^{(3)}(x)\approx \frac{f(x+3h)-3f(x+2h)+3f(x+h)-f(x)}{h^3}, \qquad O(h),
+\]
+\[
+f^{(4)}(x)\approx \frac{f(x+4h)-4f(x+3h)+6f(x+2h)-4f(x+h)+f(x)}{h^4}, \qquad O(h),
+\]
+\[
+f^{(5)}(x)\approx \frac{f(x+5h)-5f(x+4h)+10f(x+3h)-10f(x+2h)+5f(x+h)-f(x)}{h^5}, \qquad O(h).
+\]
+
+\subsubsection{Backward differences}
+
+\[
+f''(x)\approx \frac{f(x)-2f(x-h)+f(x-2h)}{h^2}, \qquad O(h),
+\]
+\[
+f^{(3)}(x)\approx \frac{f(x)-3f(x-h)+3f(x-2h)-f(x-3h)}{h^3}, \qquad O(h),
+\]
+\[
+f^{(4)}(x)\approx \frac{f(x)-4f(x-h)+6f(x-2h)-4f(x-3h)+f(x-4h)}{h^4}, \qquad O(h),
+\]
+\[
+f^{(5)}(x)\approx \frac{f(x)-5f(x-h)+10f(x-2h)-10f(x-3h)+5f(x-4h)-f(x-5h)}{h^5}, \qquad O(h).
+\]
+
+\subsubsection{Central differences}
+
+\[
+f''(x)\approx \frac{f(x+h)-2f(x)+f(x-h)}{h^2}, \qquad O(h^2),
+\]
+\[
+f^{(3)}(x)\approx \frac{f(x+2h)-2f(x+h)+2f(x-h)-f(x-2h)}{2h^3}, \qquad O(h^2),
+\]
+\[
+f^{(4)}(x)\approx \frac{f(x+2h)-4f(x+h)+6f(x)-4f(x-h)+f(x-2h)}{h^4}, \qquad O(h^2),
+\]
+\[
+f^{(5)}(x)\approx \frac{f(x+3h)-4f(x+2h)+5f(x+h)-5f(x-h)+4f(x-2h)-f(x-3h)}{2h^5}, \qquad O(h^2).
+\]
+
+\subsection{Analysis}
+
+The main computational lesson of Problem 1 is that symmetry improves accuracy. The central formulas cancel more low-order Taylor terms because the stencil is balanced around the evaluation point. As a result, their leading truncation error is $O(h^2)$ rather than $O(h)$.
+
+This is exactly why the central formulas perform much better in Problems 2 and 3. At the same time, forward and backward formulas are still necessary near boundaries, where data on only one side are available. So Problem 1 is not only a symbolic derivation; it sets up the practical choices used in the later numerical experiments.
+
+\section{Problem 2: first derivative of $f(x)=xe^x$}
+
+\subsection{Original code}
+
+\begin{lstlisting}[language=Python,caption={Excerpt from hw7\_2/main.py.}]
+fimport numpy as np
+import matplotlib.pyplot as plt
+import math
+
+# 原函数
+def f(x):
+    return x * np.exp(x)
+
+# 精确一阶导数
+def fp_exact(x):
+    return (x + 1) * np.exp(x)
+
+x0 = 2.0
+exact = fp_exact(x0)
+
+print("Exact f'(2) =", exact)
+
+# =========================
+# Part 1: use table data h=0.1
+# =========================
+
+h = 0.1
+
+table = {
+    1.8: 10.889365,
+    1.9: 12.703199,
+    2.0: 14.778112,
+    2.1: 17.148957,
+    2.2: 19.855030
+}
+
+# 一阶差分公式
+forward = (table[2.1] - table[2.0]) / h
+backward = (table[2.0] - table[1.9]) / h
+central = (table[2.1] - table[1.9]) / (2*h)
+
+# 三点前向公式
+forward_3 = (
+    -3*table[2.0]
+    + 4*table[2.1]
+    - table[2.2]
+) / (2*h)
+
+# 三点后向公式
+backward_3 = (
+    3*table[2.0]
+    - 4*table[1.9]
+    + table[1.8]
+) / (2*h)
+
+# 五点中心差分公式
+central_5 = (
+    table[1.8]
+    - 8*table[1.9]
+    + 8*table[2.1]
+    - table[2.2]
+) / (12*h)
+
+methods_table = {
+    "Forward difference": forward,
+    "Backward difference": backward,
+    "Central difference": central,
+    "Forward 3-point": forward_3,
+    "Backward 3-point": backward_3,
+    "Central 5-point": central_5
+}
+
+print("\nUsing table data, h = 0.1")
+print("{:<25s} {:>18s} {:>18s}".format(
+    "Method", "Approximation", "Abs Error"
+))
+
+for name, value in methods_table.items():
+    print("{:<25s} {:>18.8f} {:>18.8f}".format(
+        name, value, abs(value - exact)
+    ))
+
+# =========================
+# Part 2: different h values
+# =========================
+
+print("\nErrors for different h")
+print("{:<10s} {:>15s} {:>15s} {:>15s} {:>15s} {:>15s} {:>15s}".format(
+    "h",
+    "Forward",
+    "Backward",
+    "Central",
+    "Forward3",
+    "Backward3",
+    "Central5"
+))
+
+hs = [10**(-k) for k in range(1, 13)]
+
+for h in hs:
+    forward_h = (f(x0+h) - f(x0)) / h
+    backward_h = (f(x0) - f(x0-h)) / h
+    central_h = (f(x0+h) - f(x0-h)) / (2*h)
+
+    forward_3_h = (
+        -3*f(x0)
+        + 4*f(x0+h)
+        - f(x0+2*h)
+    ) / (2*h)
+
+    backward_3_h = (
+        3*f(x0)
+        - 4*f(x0-h)
+        + f(x0-2*h)
+    ) / (2*h)
+
+    central_5_h = (
+        f(x0-2*h)
+        - 8*f(x0-h)
+        + 8*f(x0+h)
+        - f(x0+2*h)
+    ) / (12*h)
+
+    print("{:<10.1e} {:>15.6e} {:>15.6e} {:>15.6e} {:>15.6e} {:>15.6e} {:>15.6e}".format(
+        h,
+        abs(forward_h - exact),
+        abs(backward_h - exact),
+        abs(central_h - exact),
+        abs(forward_3_h - exact),
+        abs(backward_3_h - exact),
+        abs(central_5_h - exact)
+    ))
+
+# =========================
+# Part 3: plot comparison
+# =========================
+
+x = np.linspace(1.8, 2.2, 400)
+
+f0 = table[2.0]
+
+def tangent_line(slope):
+    return f0 + slope * (x - x0)
+
+plt.figure(figsize=(10, 6))
+
+# 原函数
+plt.plot(x, f(x), label="Original function")
+
+# 各差分公式得到的切线近似
+for name, slope in methods_table.items():
+    plt.plot(x, tangent_line(slope), linestyle="--", label=name)
+
+# 表格给出的数据点
+plt.scatter(
+    list(table.keys()),
+    list(table.values()),
+    label="Given data"
+)
+
+plt.xlabel("x")
+plt.ylabel("f(x)")
+plt.title("Comparison of original function and tangent approximations")
+plt.legend()
+plt.grid(False)
+plt.savefig("comparison_plot.png")
+\end{lstlisting}
+
+\subsection{Output results}
+
+The exact derivative is
+\[
+f'(x)=(x+1)e^x, \qquad f'(2)=3e^2\approx 22.1671682968.
+\]
+
+The program output for the given table with $h=0.1$ is summarized in Table~\ref{tab:p2table}.
+
+\begin{table}[H]
+\centering
+\caption{Problem 2 output for the table data.}
+\label{tab:p2table}
+\begin{tabular}{lcc}
+\toprule
+Method & Approximation & Absolute error \\
+\midrule
+Forward difference & 23.70845000 & 1.54128170 \\
+Backward difference & 20.74913000 & 1.41803830 \\
+Central difference & 22.22879000 & 0.06162170 \\
+Forward 3-point & 22.03231000 & 0.13485830 \\
+Backward 3-point & 22.05452500 & 0.11264330 \\
+Central 5-point & 22.16699917 & 0.00016913 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+When the step size is scanned from $10^{-1}$ to $10^{-12}$, the smallest reported error is
+\[
+3.545608\times 10^{-12},
+\]
+obtained by the central 5-point formula at $h=10^{-3}$.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.78\textwidth]{hw7_2/comparison_plot.png}
+\caption{Problem 2 comparison plot generated by \texttt{hw7\_2/main.py}.}
+\label{fig:p2plot}
+\end{figure}
+
+\subsection{Analysis}
+
+The central 5-point formula is the best method in this problem because it uses more nearby information and has a higher formal order of accuracy. Its result already agrees with the exact derivative to about four decimal places even when the raw table spacing is only $h=0.1$.
+
+The step-size scan shows the standard tradeoff in numerical differentiation. At first, reducing $h$ decreases the truncation error. But once $h$ becomes too small, subtractive cancellation appears in expressions such as $f(x+h)-f(x)$, and the division by a tiny $h$ magnifies the floating-point noise. That is why the error decreases, reaches a minimum, and then increases again.
+
+Another useful observation is that the forward and backward differences are biased in opposite directions. The forward formula overestimates the derivative, while the backward formula underestimates it. The central formulas reduce this one-sided bias because they sample both sides of the evaluation point.
+
+\section{Problem 3: second derivative of $f(x)=xe^{x^2}$}
+
+\subsection{Original code}
+
+\begin{lstlisting}[language=Python,caption={Excerpt from hw7\_3/main.py.}]
+import numpy as np
+import matplotlib.pyplot as plt
+import math
+
+def f(x):
+    return x * np.exp(x**2)
+
+def fp_exact(x):
+    return (1 + 2*x**2) * np.exp(x**2)
+
+def fpp_exact(x):
+    return (6*x + 4*x**3) * np.exp(x**2)
+
+x0 = 2.0
+exact = fpp_exact(x0)
+
+print("Exact f''(2) =", exact)
+
+# =========================
+# Part 1: use table data h=0.1
+# =========================
+
+h = 0.1
+
+table = {
+    1.8: 45.960699,
+    1.9: 70.235500,
+    2.0: 109.196300,
+    2.1: 172.765873,
+    2.2: 278.232574
+}
+
+forward_3 = (table[2.0] - 2*table[2.1] + table[2.2]) / h**2
+backward_3 = (table[2.0] - 2*table[1.9] + table[1.8]) / h**2
+central_3 = (table[2.1] - 2*table[2.0] + table[1.9]) / h**2
+
+central_5 = (
+    -table[1.8]
+    + 16*table[1.9]
+    - 30*table[2.0]
+    + 16*table[2.1]
+    - table[2.2]
+) / (12*h**2)
+
+methods_table = {
+    "Forward 3-point": forward_3,
+    "Backward 3-point": backward_3,
+    "Central 3-point": central_3,
+    "Central 5-point": central_5
+}
+
+print("\nUsing table data, h = 0.1")
+print("{:<20s} {:>18s} {:>18s}".format("Method", "Approximation", "Abs Error"))
+
+for name, value in methods_table.items():
+    print("{:<20s} {:>18.6f} {:>18.6f}".format(
+        name, value, abs(value - exact)
+    ))
+
+# =========================
+# Part 2: different h values
+# =========================
+
+print("\nErrors for different h")
+print("{:<10s} {:>15s} {:>15s} {:>15s} {:>15s}".format(
+    "h", "Forward3", "Backward3", "Central3", "Central5"
+))
+
+hs = [10**(-k) for k in range(1, 13)]
+
+for h in hs:
+    forward_3_h = (f(x0) - 2*f(x0+h) + f(x0+2*h)) / h**2
+    backward_3_h = (f(x0) - 2*f(x0-h) + f(x0-2*h)) / h**2
+    central_3_h = (f(x0+h) - 2*f(x0) + f(x0-h)) / h**2
+
+    central_5_h = (
+        -f(x0-2*h)
+        + 16*f(x0-h)
+        - 30*f(x0)
+        + 16*f(x0+h)
+        - f(x0+2*h)
+    ) / (12*h**2)
+
+    print("{:<10.1e} {:>15.6e} {:>15.6e} {:>15.6e} {:>15.6e}".format(
+        h,
+        abs(forward_3_h - exact),
+        abs(backward_3_h - exact),
+        abs(central_3_h - exact),
+        abs(central_5_h - exact)
+    ))
+
+# =========================
+# Part 3: plot comparison
+# =========================
+
+x = np.linspace(1.8, 2.2, 400)
+
+f0 = f(x0)
+fp0 = fp_exact(x0)
+
+def taylor_curve(fpp_approx):
+    return f0 + fp0*(x - x0) + 0.5*fpp_approx*(x - x0)**2
+
+plt.figure(figsize=(10, 6))
+
+plt.plot(x, f(x), label="Original function")
+
+for name, fpp_approx in methods_table.items():
+    plt.plot(x, taylor_curve(fpp_approx), linestyle="--", label=name)
+
+plt.scatter(list(table.keys()), list(table.values()), label="Given data")
+
+plt.xlabel("x")
+plt.ylabel("f(x)")
+plt.title("Comparison of original function and second-order approximations")
+plt.legend()
+plt.grid(False)
+plt.savefig("comparison_plot.png")
+\end{lstlisting}
+
+\subsection{Output results}
+
+The exact second derivative is
+\[
+f''(x)=(6x+4x^3)e^{x^2}, \qquad f''(2)=44e^4\approx 2402.3186014583.
+\]
+
+The program output for the given table with $h=0.1$ is shown in Table~\ref{tab:p3table}.
+
+\begin{table}[H]
+\centering
+\caption{Problem 3 output for the table data.}
+\label{tab:p3table}
+\begin{tabular}{lcc}
+\toprule
+Method & Approximation & Absolute error \\
+\midrule
+Forward 3-point & 4189.712800 & 1787.394199 \\
+Backward 3-point & 1468.599900 & 933.718701 \\
+Central 3-point & 2460.877300 & 58.558699 \\
+Central 5-point & 2399.497458 & 2.821143 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+When $h$ is scanned from $10^{-1}$ to $10^{-12}$, the smallest reported error is
+\[
+6.372238\times 10^{-8},
+\]
+again from the central 5-point formula, now at $h=10^{-3}$.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.78\textwidth]{hw7_3/comparison_plot.png}
+\caption{Problem 3 comparison plot generated by \texttt{hw7\_3/main.py}.}
+\label{fig:p3plot}
+\end{figure}
+
+\subsection{Analysis}
+
+Problem 3 is more sensitive than Problem 2 because the formulas divide by $h^2$ instead of $h$. This means that any roundoff noise in the function values is amplified more strongly. The central 5-point formula still performs best, but its advantage disappears quickly once $h$ becomes too small.
+
+The numerical output shows this clearly. At $h=10^{-3}$ the central 5-point formula is extremely accurate, but by $h=10^{-6}$ and smaller the error grows rapidly. So a higher-order formula is useful only when the step size is chosen in the stable range. Formal order alone does not guarantee a better numerical answer.
+
+This problem also shows why symmetric stencils are especially important for second derivatives. The central formulas naturally cancel the linear term in the Taylor series, while one-sided formulas do not. That cancellation is the main reason for the large accuracy gap seen in Table~\ref{tab:p3table}.
+
+\section{Problem 4: roundoff, truncation, and optimal step size}
+
+\subsection{Original code}
+
+Problem 4 is split into three source programs.
+
+\begin{lstlisting}[language=C,caption={Derivative function from hw7\_4/a.c and hw7\_4/b.c.}]
+double derivative(double (*func)(double), double x, double delta) {
+    return (func(x + delta) - func(x)) / delta;
+}
+\end{lstlisting}
+
+\begin{lstlisting}[language=Python,caption={High-order comparison from hw7\_4/c++.py.}]
+D1 = (f(x0 + h) - f(x0)) / h
+D2 = (f(x0 + h) - f(x0 - h)) / (2.0 * h)
+D4 = (-f(x0 + 2.0*h) + 8.0*f(x0 + h) - 8.0*f(x0 - h) + f(x0 - 2.0*h)) / (12.0 * h)
+D6 = (
+    -f(x0 - 3.0*h) + 9.0*f(x0 - 2.0*h) - 45.0*f(x0 - h)
+    + 45.0*f(x0 + h) - 9.0*f(x0 + 2.0*h) + f(x0 + 3.0*h)
+) / (60.0 * h)
+\end{lstlisting}
+
+\subsection{Output results}
+
+\subsubsection{Part (a)}
+
+For
+\[
+f(x)=x(x-1), \qquad f'(x)=2x-1,
+\]
+the exact derivative at $x=1$ is $1$. The program output is:
+
+\begin{lstlisting}
+numerical derivative = 1.0100000000
+analytical derivative = 1.0000000000
+error = 0.0100000000
+\end{lstlisting}
+
+\subsubsection{Part (b)}
+
+The multi-$\delta$ experiment gives the results in Table~\ref{tab:p4b}.
+
+\begin{table}[H]
+\centering
+\caption{Problem 4(b) output.}
+\label{tab:p4b}
+\begin{tabular}{ccc}
+\toprule
+$\delta$ & Numerical derivative & Absolute error \\
+\midrule
+$10^{-2}$ & 1.0100000000000009 & $1.000000\times 10^{-2}$ \\
+$10^{-4}$ & 1.0000999999998899 & $1.000000\times 10^{-4}$ \\
+$10^{-6}$ & 1.0000009999177333 & $9.999177\times 10^{-7}$ \\
+$10^{-8}$ & 1.0000000039225287 & $3.922529\times 10^{-9}$ \\
+$10^{-10}$ & 1.0000000828403710 & $8.284037\times 10^{-8}$ \\
+$10^{-12}$ & 1.0000889005833413 & $8.890058\times 10^{-5}$ \\
+$10^{-14}$ & 0.9992007221626509 & $7.992778\times 10^{-4}$ \\
+$10^{-16}$ & 0.0000000000000000 & $1.000000\times 10^{0}$ \\
+$10^{-18}$ & 0.0000000000000000 & $1.000000\times 10^{0}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The best tested value is $\delta=10^{-8}$.
+
+\subsubsection{Part (c)}
+
+The extended script \texttt{hw7\_4/c++.py} compares four differentiation formulas for $f(x)=\sin x$ at $x=0.5$: $O(h)$, $O(h^2)$, $O(h^4)$, and $O(h^6)$. The printed optimal values are shown in Table~\ref{tab:p4c}.
+
+\begin{table}[H]
+\centering
+\caption{Problem 4(c) output from \texttt{hw7\_4/c++.py}.}
+\label{tab:p4c}
+\begin{tabular}{ccccc}
+\toprule
+Formula order & $h_{\mathrm{best,theory}}$ & $E_{\min,\mathrm{theory}}$ & $h_{\mathrm{best,num}}$ & $E_{\min,\mathrm{num}}$ \\
+\midrule
+$O(h)$   & $2.980232\times 10^{-8}$ & $1.428799\times 10^{-8}$  & $1.000000\times 10^{-8}$ & $2.850324\times 10^{-10}$ \\
+$O(h^2)$ & $8.995146\times 10^{-6}$ & $3.550377\times 10^{-11}$ & $1.584893\times 10^{-6}$ & $1.777467\times 10^{-12}$ \\
+$O(h^4)$ & $1.064156\times 10^{-3}$ & $1.875675\times 10^{-13}$ & $3.162278\times 10^{-4}$ & $4.440892\times 10^{-16}$ \\
+$O(h^6)$ & $9.105395\times 10^{-3}$ & $2.500638\times 10^{-14}$ & $1.000000\times 10^{-2}$ & $6.661338\times 10^{-16}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.88\textwidth]{hw7_4/multi_order_derivative_error_comparison_with_Oh6.png}
+\caption{Problem 4(c) error plot for $O(h)$, $O(h^2)$, $O(h^4)$, and $O(h^6)$ formulas.}
+\label{fig:p4c}
+\end{figure}
+
+\subsection{Analysis}
+
+Problem 4 shows the full competition between truncation error and roundoff error. In part (a), the forward difference with $\delta=10^{-2}$ is still fairly crude, so the main error source is truncation. In part (b), reducing $\delta$ improves the answer only up to a point. Near $\delta=10^{-8}$ the balance is best, but below that value the subtraction $f(x+\delta)-f(x)$ loses significant digits and the error grows rapidly.
+
+Part (c) generalizes the same idea to several higher-order formulas. A higher-order stencil reduces truncation error much more efficiently, so its optimal step size moves to a larger value. This is why the $O(h^6)$ method achieves its minimum around $10^{-2}$ instead of around $10^{-8}$.
+
+The figure also shows that theoretical and numerical errors do not overlap exactly. That is expected. The theory keeps only the leading truncation term and an approximate roundoff term, while the actual floating-point behavior depends on the precise cancellation pattern of each stencil and on the discrete grid of sampled $h$ values. So the theoretical curves should be interpreted as asymptotic models, not exact predictions.
+
+Finally, the plot shows a practical upper limit to improvement. The $O(h^4)$ and $O(h^6)$ methods already reach errors near machine precision, about $10^{-16}$. Once the calculation is limited by machine precision, increasing the formal order of the scheme cannot produce a substantially better answer. Higher order helps, but only until the floating-point ceiling is reached.
+
+\vfill
+\begin{center}
+{\fontsize{28}{32}\selectfont\calligra End of Report}
+\end{center}
+\vspace*{2em}
+
+\end{document}
